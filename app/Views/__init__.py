@@ -1,0 +1,1 @@
+from .parser import resume_upload_view
