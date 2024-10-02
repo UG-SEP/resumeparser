@@ -3,7 +3,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from app.models.parser import Resume
 from app.serializers.parser import ResumeSerializer
-from app.controllers.parser import ResumeController
+from app.controllers import ResumeController
+
+
 
 
 class ResumeUploadView(ListCreateAPIView):

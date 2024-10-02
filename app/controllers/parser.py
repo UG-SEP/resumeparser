@@ -95,6 +95,7 @@ Resume Text:
             ]
         )
         try:
+
             response_content = response['choices'][0]['message']['content']
             response_content = response_content.replace("```json", "").replace("```", "")
             response_content = response_content.replace("},", "},")
