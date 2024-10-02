@@ -2,6 +2,7 @@ from app.models.parser import Resume
 import openai
 import PyPDF2
 import csv
+import os 
 import json
 
 
@@ -18,7 +19,7 @@ class ResumeController:
     
     @staticmethod
     def extract_info_from_resume(resume_text):
-        openai.api_key = "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"  # Replace with your API key here
+        openai.api_key = os.environ.get("API_KEY")  # Replace with your API key here
         prompt = f"""
 Please extract the following information from the resume. If any field is missing, return null for that field. For multiple work experiences, list each company separately in the 'Work Experience' array. Make sure to extract all information, including city and country, if present. The output should strictly follow the JSON structure provided below.
 
