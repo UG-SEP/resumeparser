@@ -3,10 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from app.models import Resume
 from app.serializers import ResumeSerializer
-from app.controllers import ResumeController
-
-
-
+from app.tasks import process_resume_task  
 
 @api_view(['POST', 'GET'])
 def resume_upload_view(request):
@@ -14,8 +11,8 @@ def resume_upload_view(request):
         serializer = ResumeSerializer(data=request.data)
         if serializer.is_valid():
             resume_instance = serializer.save()
-            result = ResumeController.process_resume(resume_instance)
-            return Response(result, status=status.HTTP_201_CREATED)
+            process_resume_task.delay(resume_instance.id)
+            return Response({"message": "Resume upload successful. Processing in background."}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'GET':

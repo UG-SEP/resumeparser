@@ -21,7 +21,7 @@ class Resume(models.Model):
     storage_path = models.CharField(max_length=255, blank=True, null=True)
     parsing_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in_progress')
     no_of_retries = models.IntegerField(default=0)
-    parsed_data_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False) #the id we get from mongodb after parsing
+    parsed_data_id = models.CharField(max_length=200, editable=False) #the id we get from mongodb after parsing
     resume_category = models.CharField(max_length=20, choices=CATEGORY_CHOICES,null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
