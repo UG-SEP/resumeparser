@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 from pymongo import MongoClient
 from dotenv import load_dotenv
+import logging
 
 
 load_dotenv()
@@ -146,6 +147,9 @@ collection = db['parsed_resumes']
 
 
 # Logging settings for drf and celery
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 LOGGING = {
     'version': 1,

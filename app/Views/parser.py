@@ -9,11 +9,11 @@ from app.tasks import process_resume_task
 def resume_upload_view(request):
     if request.method == 'POST':
         serializer = ResumeSerializer(data=request.data)
-        if serializer.is_valid():
+        if serializer.is_valid(raise_exception=True):
             resume_instance = serializer.save()
             process_resume_task.delay(resume_instance.id)
             return Response({"message": "Resume upload successful. Processing in background."}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
 
     elif request.method == 'GET':
         resumes = Resume.objects.all()
