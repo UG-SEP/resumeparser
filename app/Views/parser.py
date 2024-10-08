@@ -19,7 +19,6 @@ def resume_upload_view(request):
         try:
             result = ResumeController.filter_resume(request)
             return result
-            #result = filter_resume_task.delay(request)
-            #return Response({"message": "Resume filtering started in the background."}, status=status.HTTP_202_ACCEPTED)
+            
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -43,7 +43,3 @@ def process_resume_task(self, resume_id):
         logger.error(f'Max retries exceeded for resume: {resume_id}', exc_info=True)
         if resume_instance:
             resume_instance.update(parsing_status="failed")
-
-@shared_task
-def filter_resume_task(self,request):
-    return ResumeController.filter_resume(request)
