@@ -1,9 +1,10 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from app.models import Resume
+from app.tasks import process_resume_task
+from resumeparser.settings import collection
 from app.serializers import ResumeSerializer
-from app.tasks import process_resume_task  
+from app.controllers import ResumeController
 
 @api_view(['POST', 'GET'])
 def resume_upload_view(request):
@@ -13,9 +14,12 @@ def resume_upload_view(request):
             resume_instance = serializer.save()
             process_resume_task.delay(resume_instance.id)
             return Response({"message": "Resume upload successful. Processing in background."}, status=status.HTTP_201_CREATED)
-        
 
     elif request.method == 'GET':
-        resumes = Resume.objects.all()
-        serializer = ResumeSerializer(resumes, many=True)
-        return Response(serializer.data)
+        try:
+            result = ResumeController.filter_resume(request)
+            return result
+            #result = filter_resume_task.delay(request)
+            #return Response({"message": "Resume filtering started in the background."}, status=status.HTTP_202_ACCEPTED)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
