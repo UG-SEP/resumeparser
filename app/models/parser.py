@@ -3,6 +3,7 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from resumeparser.settings import logger
 import uuid
 from app.exceptions import ResumeNotFoundError, ResumeTextExtractionError, ResumeParsingError, ResumeSaveError
+from uuid import UUID
 
 
 class Resume(models.Model):
@@ -21,7 +22,7 @@ class Resume(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    file = models.FileField(upload_to='resumes/')
+    file = models.FileField(upload_to='resumes/') #TODO: Remove the file field in future
     storage_path = models.CharField(max_length=255, blank=True, null=True)
     parsing_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in_progress')
     no_of_retries = models.IntegerField(default=0)
@@ -95,7 +96,7 @@ class Resume(models.Model):
         except Exception as e:
             logger.error(f"An unexpected error occurred while setting file location for Resume {self.id}: {str(e)}", exc_info=True)
             raise ResumeProcessingError(f"Unexpected error: {str(e)}")
-
+    
     def update_retry(self):
         try:
             self.no_of_retries += 1
@@ -103,3 +104,11 @@ class Resume(models.Model):
         except Exception as e:
             logger.error(f"An unexpected error occurred while updating retry count for Resume {self.id}: {str(e)}", exc_info=True)
             raise ResumeProcessingError(f"Unexpected error: {str(e)}")
+    
+    @classmethod
+    def get_all(cls,resume_ids):
+        return Resume.objects.filter(id__in=[UUID(resume_id) for resume_id in resume_ids])
+
+    @classmethod
+    def bulk_create_resume(cls,resume_objects):
+        return Resume.objects.bulk_create(resume_objects)

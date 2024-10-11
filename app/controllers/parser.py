@@ -11,6 +11,11 @@ import string
 import nltk
 from nltk.corpus import stopwords
 from app.pagination import ResumePagination
+from rest_framework.response import Response
+from rest_framework import status
+import csv
+from django.http import HttpResponse
+import json
 
 nltk.download('stopwords')
 
@@ -55,17 +60,17 @@ class ResumeController:
     def process_resume(instance):
         instance.set_file_location()
         resume_text = ResumeController.extract_text_from_pdf(instance.get_file_location())
+        resume_text = resume_text.lower()  
+        resume_text = ResumeController.remove_html_tags(resume_text) 
+        resume_text = ResumeController.remove_punctuation(resume_text) 
+        resume_text = ResumeController.remove_stop_words(resume_text)
 
         if resume_text is None:
             raise ResumeParsingError("Failed to extract text from the resume.")
         
         
 
-        parsed_data = extract_info_from_resume(resume_text)
-        # parsed_data = resume_text.lower()  
-        # parsed_data = ResumeController.remove_html_tags(parsed_data) 
-        # parsed_data = ResumeController.remove_punctuation(parsed_data) 
-        # parsed_data = ResumeController.remove_stop_words(parsed_data) 
+        parsed_data = extract_info_from_resume(resume_text) 
         if parsed_data is None:
             raise ResumeParsingError("Failed to parse data from the resume.")
 
@@ -84,72 +89,197 @@ class ResumeController:
     
     @staticmethod
     def extract_query_params(request):
-        """Extract query parameters from the request."""
         return {
-            "skills": request.query_params.getlist('skills', []),
-            "min_experience": request.query_params.get('experience', None),
-            "technologies": request.query_params.getlist('technologies', []),
+            "skills_experience": request.query_params.get('skills_experience',None),
+            "skills": request.query_params.get('skills',None),
+            "proficient_technologies": request.query_params.get('proficient_technologies',None),
+            "full_time_experience": request.query_params.get('full_time_experience', None),
             "company_type": request.query_params.get('company_type', None),
-            "product_company_exp": request.query_params.get('product_company_experience', None),
-            "startup_exp": request.query_params.get('startup_experience', None),
+            "product_company_experience": request.query_params.get('product_company_experience', None),
+            "startup_experience": request.query_params.get('startup_experience', None),
             "degree_type": request.query_params.get('degree_type', None),
-            "position": request.query_params.get('position', None),
-            "gen_ai_exp": request.query_params.get('gen_ai_experience', None),
-            "four_year_cs_degree": request.query_params.get('four_year_cs_degree', None),
-            "early_stage_startup_exp": request.query_params.get('early_stage_startup_exp', None),
+            "last_position_held": request.query_params.get('last_position_held', None),
+            "gen_ai_experience": request.query_params.get('gen_ai_experience', None),
+            "is_cs_degree": request.query_params.get('is_cs_degree', None),
+            "is_ml_degree": request.query_params.get('is_ml_degree', None),
+            "early_stage_startup_experience": request.query_params.get('early_stage_startup_experience', None),
+            "institute_type": request.query_params.get('institute_type', None),
+            "llm_experience": request.query_params.get('llm_experience', None),
+            "service_company_experience": request.query_params.get('service_company_experience', None),
+            "resume_type": request.query_params.get('resume_type', None),
+            "projects_outside_of_work": request.query_params.get('projects_outside_of_work', None),
         }
 
     @staticmethod
-    def validate_query_params(params):
-        """Validate the query parameters extracted from the request."""
-        if params['min_experience'] and not params['min_experience'].isdigit():
-            raise ValueError("Experience should be a valid number.")
-        if params['product_company_exp'] and not params['product_company_exp'].isdigit():
-            raise ValueError("Product company experience should be a valid number.")
-        if params['startup_exp'] and not params['startup_exp'].isdigit():
-            raise ValueError("Startup experience should be a valid number.")
-        if params['early_stage_startup_exp'] and not params['early_stage_startup_exp'].isdigit():
-            raise ValueError("Early stage startup experience should be a valid number.")
-
-    @staticmethod
     def build_filter_query(params):
-        """Build the filter query based on the provided parameters."""
         filter_query = {}
 
-        if params['skills']:
-            filter_query["parsed_data.Skills.Languages"] = {"$all": params['skills']}
+        if params.get('full_time_experience'):
+            filter_query["parsed_data.additional_experience_summary.years_of_full_time_experience_after_graduation"] = {
+                "$gte": int(params['full_time_experience'])
+            }
+        
+        if params.get('skills_experience'):
+            skills = split_and_strip(params, "skills_experience")
 
-        if params['min_experience']:
-            filter_query["parsed_data.Skills.Total Skill Experience.Python"] = {
-                "$regex": f"{params['min_experience']}\\+ years", "$options": "i"
+            skill_queries = []
+            for skill in skills:
+                skill_name, experience_years = skill.split('|')
+                experience_years = int(experience_years)
+
+                skill_query = {
+                    f"parsed_data.skills.total_skill_experience.{skill_name}": {
+                        "$gte": experience_years
+                    }
+                }
+                skill_queries.append(skill_query)
+
+            if skill_queries:
+                filter_query["$or"] = skill_queries
+
+
+        if params.get('company_type') == 'product':
+            filter_query["parsed_data.additional_experience_summary.product_company_experience"] = {
+                "$gt": 0
             }
 
-        if params['technologies']:
-            filter_query["parsed_data.Skills.Technologies"] = {"$all": params['technologies']}
+        if params.get('company_type') == 'startup':
+            filter_query["parsed_data.additional_experience_summary.total_startup_experience"] = {
+                "$gt": 0 
+            }
 
-        if params['company_type']:
-            filter_query["parsed_data.Experience.Company Information.Company Type"] = params['company_type']
+        if params.get('product_company_experience'):
+            filter_query["parsed_data.additional_experience_summary.product_company_experience"] = {
+                "$gte": int(params['product_company_experience'])
+            }
 
-        if params['product_company_exp']:
-            filter_query["parsed_data.product_company_experience"] = {"$gte": int(params['product_company_exp'])}
+        if params.get('startup_experience'):
+            filter_query["parsed_data.additional_experience_summary.total_startup_experience"] = {
+                "$gte": int(params['startup_experience'])
+            }
 
-        if params['startup_exp']:
-            filter_query["parsed_data.total_startup_experience"] = {"$gte": int(params['startup_exp'])}
+        if params.get('degree_type'):
+            filter_query["parsed_data.education.degree_level"] = {
+                "$regex": f"^{params['degree_type']}$", "$options": "i"
+            }
 
-        if params['degree_type']:
-            filter_query["parsed_data.Education.Degree Name"] = {"$regex": params['degree_type'], "$options": "i"}
+        if params.get('last_position_held'):
+            filter_query["parsed_data.additional_experience_summary.last_position_held"] = {
+                "$regex": f".*{re.escape(params['last_position_held'])}.*",
+                "$options": "i"
+            }
 
-        if params['position']:
-            filter_query["parsed_data.Experience.Company Information.Last Position Held"] = params['position']
 
-        if params['gen_ai_exp']:
-            filter_query["parsed_data.Skills.Gen AI Experience"] = params['gen_ai_exp'].lower() == 'true'
+        if params.get('gen_ai_experience'):
+            filter_query["parsed_data.skills.gen_ai_experience"] = params['gen_ai_experience'].lower() == 'true'
+        
+        if params.get('is_ml_degree'):
+            filter_query["parsed_data.education.is_ml_degree"] = params['is_ml_degree'].lower() == 'true'
 
-        if params['four_year_cs_degree']:
-            filter_query["parsed_data.Education.Is CS Degree"] = params['four_year_cs_degree'].lower() == 'true'
+        if params.get('is_cs_degree'):
+            filter_query["parsed_data.education.is_cs_degree"] = params['is_cs_degree'].lower() == 'true'
 
-        if params['early_stage_startup_exp']:
-            filter_query["parsed_data.total_early_stage_startup_experience"] = {"$gte": int(params['early_stage_startup_exp'])}
+        if params.get('early_stage_startup_experience'):
+            filter_query["parsed_data.additional_experience_summary.total_early_stage_startup_experience"] = {
+                "$gte": int(params['early_stage_startup_experience'])
+            }
+
+        if params.get('institute_type'):
+            filter_query["parsed_data.education.institute_type"] = {
+            "$regex": f"^{re.escape(params['institute_type'])}$",
+            "$options": "i"  
+        }
+
+        if params.get('llm_experience'):
+            filter_query["parsed_data.skills.llm_experience"] = params['llm_experience'].lower() == 'true'
+
+        if params.get('service_company_experience'):
+            filter_query["parsed_data.additional_experience_summary.service_company_experience"] = {
+                "$gte": int(params['service_company_experience'])
+            }
+
+        if params.get('resume_type'):
+            filter_query["parsed_data.resume_type"] = {
+                "$regex": f"^{params['resume_type']}$", "$options": "i"
+            }
+
+        if params.get('projects_outside_of_work'):
+            filter_query["parsed_data.projects_outside_of_work"] = {"$exists": True, "$ne": []}
+        
+        if params.get('skills'):
+            skills = split_and_strip(params,'skills')
+            if skills:
+                pattern = '|'.join(map(re.escape, skills))
+                filter_query = {
+                    "$or": [
+                        {
+                            "parsed_data.skills.technologies.proficient": {
+                                "$regex": pattern,
+                                "$options": "i"
+                            }
+                        },
+                        {
+                            "parsed_data.skills.languages.proficient": {
+                                "$regex": pattern,
+                                "$options": "i"
+                            }
+                        },
+                        {
+                            "parsed_data.skills.frameworks.proficient": {
+                                "$regex": pattern,
+                                "$options": "i"
+                            }
+                        },
+                        {
+                            "parsed_data.skills.frameworks.average": {
+                                "$regex": pattern,
+                                "$options": "i"
+                            }
+                        },
+                        {
+                            "parsed_data.skills.languages.average": {
+                                "$regex": pattern,
+                                "$options": "i"
+                            }
+                        },
+                        {
+                            "parsed_data.skills.technologies.average": {
+                                "$regex": pattern,
+                                "$options": "i"
+                            }
+                        }
+                    ]
+                }
+
+
+        if params.get('proficient_technologies'):
+            proficient_technologies = split_and_strip(params, 'proficient_technologies')
+            if proficient_technologies:
+                pattern = '|'.join(map(re.escape, proficient_technologies))
+
+                filter_query = {
+                    "$or": [
+                        {
+                            "parsed_data.skills.technologies.proficient": {
+                                "$regex": pattern,
+                                "$options": "i"
+                            }
+                        },
+                        {
+                            "parsed_data.skills.languages.proficient": {
+                                "$regex": pattern,
+                                "$options": "i"
+                            }
+                        },
+                        {
+                            "parsed_data.skills.frameworks.proficient": {
+                                "$regex": pattern,
+                                "$options": "i"
+                            }
+                        }
+                    ]
+                }
+
 
         return filter_query
 
@@ -157,9 +287,6 @@ class ResumeController:
     def filter_resume(request):
         try:
             query_params = ResumeController.extract_query_params(request)
-
-            ResumeController.validate_query_params(query_params)
-
             filter_query = ResumeController.build_filter_query(query_params)
 
             try:
@@ -177,11 +304,154 @@ class ResumeController:
             paginator = ResumePagination()
             paginated_resumes = paginator.paginate_queryset(resumes, request)
 
+            if request.query_params.get('format_type') == 'csv':
+                return ResumeController.generate_csv_response(paginated_resumes)
+
             return paginator.get_paginated_response(paginated_resumes)
 
         except ValueError as e:
             logger.error(f"Error filtering resumes: {str(e)}", exc_info=True)
-            raise e
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"Unexpected error in filtering resumes: {str(e)}", exc_info=True)
-            raise e
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @staticmethod
+    def generate_csv_response(resumes):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="resumes.csv"'
+        writer = csv.writer(response)
+        
+        headers = ['Name', 'Email', 'Mobile', 'City', 'Country', 'Title']
+
+        headers += [f'Language{i+1}' for i in range(5)]
+        headers += [f'Framework{i+1}' for i in range(5)]
+        headers += [f'Technology{i+1}' for i in range(5)]
+        
+        headers += ['LLM Experience', 'Gen AI Experience'] + [f'Skill_Experience_{i+1}' for i in range(5)]
+        
+        for i in range(5):
+            headers += [f'School_Name{i+1}', f'Degree_Name{i+1}', f'City{i+1}', f'Country{i+1}', 
+                        f'Year_Of_Start{i+1}', f'Year_Of_Graduation{i+1}', f'Duration_In_Years{i+1}', 
+                        f'Degree_Level{i+1}',f'Is Cs Degree{i+1}',f'Is ML Degree{i+1}',f'Institute Type{i+1}']
+
+        for i in range(5):
+            headers += [f'Company_Name{i+1}', f'Position_Held{i+1}', f'City{i+1}', f'Country{i+1}', 
+                        f'Joining_Date{i+1}', f'Leaving_Date{i+1}', f'Total_Duration{i+1}',f'Company Size Range{i+1}',
+                        f'Total Capital Raised{i+1}',f'Company Type{i+1}',f'Is Faang{i+1}',
+                         f'has_the_company_raised_capital_in_the_last_5_years{i+1}',
+                         f'Is Startup{i+1}']
+        
+        for i in range(5):
+            headers += [f'Project_Name{i+1}', f'Project_Description{i+1}']
+
+        headers += [
+            'Last_Position_Held', 'Years_Of_Full_Time_Experience', 'Total_Startup_Experience', 
+            'Total_Early_Stage_Startup_Experience', 'Product_Company_Experience', 
+            'Service_Company_Experience', 'Gen_AI_Experience', 'Overall_Summary'
+        ]
+        headers.append('Parsed Data')
+
+        writer.writerow(headers)
+        
+        for resume in resumes:
+            row = []
+            parsed_data = resume.get('parsed_data', {})
+
+            personal_info = parsed_data.get('personal_information', {})
+            row += [
+                personal_info.get('name', ''),
+                personal_info.get('email', ''),
+                personal_info.get('mobile', ''),
+                personal_info.get('city', ''),
+                personal_info.get('country', ''),
+                parsed_data.get('title', '')
+            ]
+
+            for skill_type in ['languages', 'frameworks', 'technologies']:
+                skills = parsed_data.get('skills', {}).get(skill_type, {})
+                proficient = skills.get('proficient', [])
+                average = skills.get('average', [])
+                combined = proficient[:5] + average[:5 - len(proficient)] 
+                row += combined + [''] * (5 - len(combined))  
+
+            total_skill_experience = parsed_data.get('skills', {}).get('total_skill_experience', {})
+            top_5_skills = list(total_skill_experience.items())[:5]  
+            row += [parsed_data.get('skills', {}).get('llm_experience', False),
+                    parsed_data.get('skills', {}).get('gen_ai_experience', False)]
+            row += [f'{skill}: {exp}' for skill, exp in top_5_skills] + [''] * (5 - len(top_5_skills))  
+
+            educations = [parsed_data.get('education', {})]  
+            educations = educations[:5] + [{}] * (5 - len(educations))  
+            for edu in educations:
+                row += [
+                    edu.get('school_name', ''),
+                    edu.get('degree_name', ''),
+                    edu.get('city', ''),
+                    edu.get('country', ''),
+                    edu.get('year_of_start', ''),
+                    edu.get('year_of_graduation', ''),
+                    edu.get('duration_in_years', ''),
+                    edu.get('degree_level', ''),
+                    edu.get('is_cs_degree'),
+                    edu.get('is_ml_degree'),
+                    edu.get('institute_type')
+                ]
+                
+            # BUG: the response in the parsed_data used this {},[{}] to make sub-fields of experience field
+            # Parsed_data is received after filtering the get request means there is some issue in the given data from the gpt
+            # As the gpt response is just converted into json in stored in the mongodb
+
+            #print(parsed_data)
+            experiences = parsed_data.get('experience', [])[:5]  
+            experiences = experiences + [{}] * (5 - len(experiences))  
+            for exp in experiences:
+                company_info = exp.get('company_information', {})
+                position = exp.get('positions_held_within_the_company', [{}])[0]
+                row += [
+                    company_info.get('name', ''),
+                    position.get('position_name', ''),
+                    company_info.get('city', ''),
+                    company_info.get('country', ''),
+                    company_info.get('joining_month_and_year', ''),
+                    company_info.get('leaving_month_and_year', ''),
+                    company_info.get('total_duration_in_years', ''),
+                    company_info.get('company_size_range'),
+                    company_info.get('total_capital_raised'),
+                    company_info.get('company_type'),
+                    company_info.get('is_fang'),
+                    company_info.get('has_the_company_raised_capital_in_the_last_5_years?'),
+                    company_info.get('is_startup')
+                ]
+
+            projects = parsed_data.get('projects_outside_of_work', [])[:5]  
+            projects = projects + [{}] * (5 - len(projects)) 
+            for project in projects:
+                row += [
+                    project.get('project_name', ''),
+                    project.get('project_description', '')
+                ]
+            
+            additional_experience = parsed_data.get('additional_experience_summary', {})
+            row += [
+                additional_experience.get('last_position_held', ''),
+                additional_experience.get('years_of_full_time_experience_after_graduation', ''),
+                additional_experience.get('total_startup_experience', ''),
+                additional_experience.get('total_early_stage_startup_experience', ''),
+                additional_experience.get('product_company_experience', ''),
+                additional_experience.get('service_company_experience', ''),
+                additional_experience.get('gen_ai_experience', '')
+            ]
+
+            row.append(parsed_data.get('overall_summary_of_candidate', ''))
+            row.append(json.dumps(parsed_data))
+
+            writer.writerow(row)
+
+        return response
+
+
+def split_and_strip(params, key):
+        if key in params:
+            return [tech.strip() for tech in params[key].split(',')]
+        return []
