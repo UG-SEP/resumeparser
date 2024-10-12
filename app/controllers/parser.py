@@ -1,4 +1,5 @@
 from asyncio import sleep
+import time
 from resumeparser.settings import logger
 from app.models import Resume
 import pdfplumber
@@ -26,11 +27,18 @@ class ResumeController:
     @staticmethod
     def extract_text_from_pdf(pdf_path):
         try:
+            # import pdb; pdb.set_trace()
             text = ""
             with pdfplumber.open(pdf_path) as pdf:
-                for page in pdf.pages:
-                    text += page.extract_text() + "\n"
-            pdf.close()
+                for page_number, page in enumerate(pdf.pages):
+                    page_text = page.extract_text()
+
+                    time.sleep(1)
+                    if not page_text:
+                        # Log and handle empty page cases
+                        logger.error(f"Page {page_number + 1} returned empty text.")
+                    else:
+                        text += page_text + "\n"
             return text.strip()
         except FileNotFoundError:
             logger.error(f"The file {pdf_path} was not found.", exc_info=True)
@@ -63,27 +71,29 @@ class ResumeController:
         try:
             # import pdb; pdb.set_trace()
             resume = Resume.get(resume_id)
-            logger.info(f"Processing resume: {resume.id}")
+            logger.info(f"Processing resume: {resume_id}")
             if not resume.id:
                 raise ResumeProcessingError(f"Resume {resume_id} does not exist.")
 
             resume.set_file_location()
-            resume_text = ResumeController.extract_text_from_pdf(resume.get_file_location())
+            file_location = resume.get_file_location()
+            resume_text =  ResumeController.extract_text_from_pdf(file_location)
             logger.info(f"Extracted text from the resume: {resume_text}")
-            sleep(5)
+            # sleep(5)
             resume_text = resume_text.lower()  
             resume_text = ResumeController.remove_html_tags(resume_text) 
             resume_text = ResumeController.remove_punctuation(resume_text) 
             resume_text = ResumeController.remove_stop_words(resume_text)
 
             if resume_text is None:
-                raise ResumeParsingError(f"Failed to extract text from the resume: {resume.id}")  
+                raise ResumeParsingError(f"Failed to extract text from the resume: {resume_id}")  
             
             
-
+            logger.info(f"Sending resume {resume_id} for parsing to openai.")
             parsed_data = extract_info_from_resume(resume_text) 
+            logger.info(f"Received parsed data from openai: {parsed_data} for resume: {resume_id}")
             if parsed_data is None:
-                raise ResumeParsingError(f"Failed to parse data from the resume: {resume.id}")
+                raise ResumeParsingError(f"Failed to parse data from the resume: {resume_id}")
         
         except Exception as e:
             logger.error(f"Error processing resume: {e}", exc_info=True)
@@ -226,7 +236,7 @@ class ResumeController:
             skills = split_and_strip(params,'skills')
             if skills:
                 pattern = '|'.join(map(re.escape, skills))
-                filter_query = {
+                filter_query.update({
                     "$or": [
                         {
                             "parsed_data.skills.technologies.proficient": {
@@ -265,7 +275,7 @@ class ResumeController:
                             }
                         }
                     ]
-                }
+                })
 
 
         if params.get('proficient_technologies'):
@@ -273,7 +283,7 @@ class ResumeController:
             if proficient_technologies:
                 pattern = '|'.join(map(re.escape, proficient_technologies))
 
-                filter_query = {
+                filter_query.update({
                     "$or": [
                         {
                             "parsed_data.skills.technologies.proficient": {
@@ -294,7 +304,7 @@ class ResumeController:
                             }
                         }
                     ]
-                }
+                })
 
 
         return filter_query
@@ -304,6 +314,7 @@ class ResumeController:
         try:
             query_params = ResumeController.extract_query_params(request)
             filter_query = ResumeController.build_filter_query(query_params)
+            print(filter_query)
 
             try:
                 resumes = list(collection.find(filter_query))

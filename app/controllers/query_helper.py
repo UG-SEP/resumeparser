@@ -173,3 +173,4 @@ def proficient_technologies_query(params,filter_query):
                     }
                 ]
             }
+

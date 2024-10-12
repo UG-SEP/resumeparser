@@ -8,7 +8,7 @@ from app.exceptions import ResumeProcessingError
 
 
 @shared_task(bind=True, max_retries=3)
-def process_resume_task(self,resume_id):
+def process_resume_task(self, resume_id):
     try:
         if not resume_id:
             logger.error("No resume IDs provided for processing.", exc_info=True)
@@ -32,7 +32,7 @@ def process_resume_task(self,resume_id):
     except ResumeProcessingError as exc:
         logger.error(f'Error processing resumes: {exc}', exc_info=True)
         
-        retry_intervals = [300, 600, 1800]
+        retry_intervals = [600, 1200, 1800]
         retry_count = self.request.retries
         retry_countdown = retry_intervals[retry_count] if retry_count < len(retry_intervals) else retry_intervals[-1]
 
