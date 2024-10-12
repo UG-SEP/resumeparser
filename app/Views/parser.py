@@ -21,15 +21,21 @@ def resume_upload_view(request):
         # and pass to the process_resume_task
         serializer = ResumeSerializer()
         created_resumes = serializer.create_bulk(resume_files) 
-        resume_ids = [str(resume.id) for resume in created_resumes]       
-        process_resume_task.delay(resume_ids)
+        # resume_ids = [str(resume.id) for resume in created_resumes] 
+        #  resumes = Resume.get_all(resume_id)
+        # resume_ids = [resume.id for resume in created_resumes]
+        for resume in created_resumes:
+            print(resume)
+            print(type(resume.id))
+            process_resume_task.delay(resume.id)
+
         logger.info(f"{len(resume_files)} Resume has been passed to the celery task for background processing: ")
         return Response(
             {"message": f"{len(resume_files)} resumes uploaded and processing started."},
             status=status.HTTP_201_CREATED
         )
 
-    elif request.method == 'GET':
+    elif request.method == 'GET': #TODO separate url 
         try:
             #TODO : Donot pass the request directly used serializer to serializer the data and then pass and take request as optimal
             result = ResumeController.filter_resume(request)

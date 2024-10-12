@@ -163,3 +163,4 @@ cython_debug/
 
 # remove pdf file from reading
 *.pdf
+media/

@@ -2,7 +2,7 @@ from django.db import models, IntegrityError, DatabaseError
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from resumeparser.settings import logger
 import uuid
-from app.exceptions import ResumeNotFoundError, ResumeTextExtractionError, ResumeParsingError, ResumeSaveError
+from app.exceptions import ResumeNotFoundError, ResumeProcessingError, ResumeTextExtractionError, ResumeParsingError, ResumeSaveError
 from uuid import UUID
 
 

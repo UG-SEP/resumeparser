@@ -55,7 +55,7 @@ You can interact with the resume parser API using Postman:
 1. Open Postman.
 2. Create a new POST request.
 3. Set the URL to `http://127.0.0.1:8000/upload/`
-4. In the Body tab, select form-data, set the key to `file`, and upload your PDF file.
+4. In the Body tab, select form-data, set the key to `resumes`, and upload your PDF file.
 5. Send the request.
 
 You should receive a response indicating the status of your resume parsing request.

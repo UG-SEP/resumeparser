@@ -8,25 +8,26 @@ from app.exceptions import ResumeProcessingError
 
 
 @shared_task(bind=True, max_retries=3)
-def process_resume_task(self, resume_ids):
+def process_resume_task(self,resume_id):
     try:
-        if not resume_ids:
+        if not resume_id:
             logger.error("No resume IDs provided for processing.", exc_info=True)
             return
 
-        resumes = Resume.get_all(resume_ids)
-        for resume in resumes:
-            logger.info(f'Processing resume: {resume.id}')
+        # resumes = Resume.get_all([resume_id])
+        # for resume in resumes:
+        # resume = Resume.get(resume_id)
+        logger.info(f'Processing resume: {resume_id}')
 
-            result = ResumeController.process_resume(resume)
+        result = ResumeController.process_resume(resume_id)
 
-            if result.get('message') != StatusMessages.SUCCESS:
-                logger.error(f'Resume processing failed for: {resume.id}', exc_info=True)
-                raise ResumeProcessingError(f'Resume processing failed for {resume.id}')
-            
-            logger.info(f'Resume processed successfully: {resume.id}')
+        if result.get('message') != StatusMessages.SUCCESS:
+            logger.info(f'Resume processing failed for: {resume_id}', exc_info=True)
+            raise ResumeProcessingError(f'Resume processing failed for {resume_id}')
+        
+        logger.info(f'Resume processed successfully: {resume_id}')
 
-        return {"message": "Bulk resume processing completed successfully."}
+        return {"message": f"Resume processing completed successfully for {resume_id}"}
 
     except ResumeProcessingError as exc:
         logger.error(f'Error processing resumes: {exc}', exc_info=True)
@@ -40,5 +41,41 @@ def process_resume_task(self, resume_ids):
 
     except MaxRetriesExceededError:
         logger.error(f'Max retries exceeded for resumes', exc_info=True)
-        for resume_id in resume_ids:
-            Resume.get(resume_id).update(parsing_status="failed")
+        Resume.get(resume_id).update(parsing_status="failed")
+
+
+
+# @shared_task(bind=True, max_retries=3)
+# def process_resume_task(resume_id):
+#     if not resume_id:
+#         logger.error("No resume IDs provided for processing.", exc_info=True)
+#         return
+
+#     # resumes = Resume.get_all([resume_id])
+#     # for resume in resumes:
+#     resume = Resume.get(resume_id)
+#     logger.info(f'Processing resume: {resume.id}')
+
+#     result = ResumeController.process_resume(resume)
+
+#     if result.get('message') != StatusMessages.SUCCESS:
+#         logger.error(f'Resume processing failed for: {resume.id}', exc_info=True)
+#         raise ResumeProcessingError(f'Resume processing failed for {resume.id}')
+    
+#     logger.info(f'Resume processed successfully: {resume.id}')
+
+#     return {"message": "Resume processing completed successfully for {resume.id}"}
+
+#     # except ResumeProcessingError as exc:
+#     #     logger.error(f'Error processing resumes: {exc}', exc_info=True)
+        
+#     #     retry_intervals = [300, 600, 1800]
+#     #     retry_count = self.request.retries
+#     #     retry_countdown = retry_intervals[retry_count] if retry_count < len(retry_intervals) else retry_intervals[-1]
+
+#     #     logger.exception(f'Retrying in {retry_countdown // 60} minutes...', exc_info=True)
+#     #     self.retry(exc=exc, countdown=retry_countdown)
+
+#     # except MaxRetriesExceededError:
+#     #     logger.error(f'Max retries exceeded for resumes', exc_info=True)
+#     #     Resume.get(resume_id).update(parsing_status="failed")

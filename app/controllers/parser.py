@@ -1,10 +1,11 @@
+from asyncio import sleep
 from resumeparser.settings import logger
 from app.models import Resume
 import pdfplumber
 from app.api_books import extract_info_from_resume
 from resumeparser.settings import collection
 from app.constants import StatusMessages
-from app.exceptions import ResumeTextExtractionError, ResumeParsingError, ResumeSaveError
+from app.exceptions import ResumeProcessingError, ResumeTextExtractionError, ResumeParsingError, ResumeSaveError
 from bs4 import BeautifulSoup 
 import re
 import string
@@ -29,6 +30,7 @@ class ResumeController:
             with pdfplumber.open(pdf_path) as pdf:
                 for page in pdf.pages:
                     text += page.extract_text() + "\n"
+            pdf.close()
             return text.strip()
         except FileNotFoundError:
             logger.error(f"The file {pdf_path} was not found.", exc_info=True)
@@ -57,29 +59,43 @@ class ResumeController:
         return data.get("resume_type", None)
 
     @staticmethod
-    def process_resume(instance):
-        instance.set_file_location()
-        resume_text = ResumeController.extract_text_from_pdf(instance.get_file_location())
-        resume_text = resume_text.lower()  
-        resume_text = ResumeController.remove_html_tags(resume_text) 
-        resume_text = ResumeController.remove_punctuation(resume_text) 
-        resume_text = ResumeController.remove_stop_words(resume_text)
+    def process_resume(resume_id):
+        try:
+            # import pdb; pdb.set_trace()
+            resume = Resume.get(resume_id)
+            logger.info(f"Processing resume: {resume.id}")
+            if not resume.id:
+                raise ResumeProcessingError(f"Resume {resume_id} does not exist.")
 
-        if resume_text is None:
-            raise ResumeParsingError("Failed to extract text from the resume.")
-        
-        
+            resume.set_file_location()
+            resume_text = ResumeController.extract_text_from_pdf(resume.get_file_location())
+            logger.info(f"Extracted text from the resume: {resume_text}")
+            sleep(5)
+            resume_text = resume_text.lower()  
+            resume_text = ResumeController.remove_html_tags(resume_text) 
+            resume_text = ResumeController.remove_punctuation(resume_text) 
+            resume_text = ResumeController.remove_stop_words(resume_text)
 
-        parsed_data = extract_info_from_resume(resume_text) 
-        if parsed_data is None:
-            raise ResumeParsingError("Failed to parse data from the resume.")
+            if resume_text is None:
+                raise ResumeParsingError(f"Failed to extract text from the resume: {resume.id}")  
+            
+            
+
+            parsed_data = extract_info_from_resume(resume_text) 
+            if parsed_data is None:
+                raise ResumeParsingError(f"Failed to parse data from the resume: {resume.id}")
+        
+        except Exception as e:
+            logger.error(f"Error processing resume: {e}", exc_info=True)
+            raise ResumeProcessingError(f"Failed to process resume: {e}")
+
 
         try:
             mongo_doc_id = collection.insert_one({
                 'parsed_data': parsed_data
             }).inserted_id
-            instance.update(parsed_data_id=mongo_doc_id, resume_category=ResumeController.extract_resume_category(parsed_data), parsing_status='completed')
-            instance.save()
+            resume.update(parsed_data_id=mongo_doc_id, resume_category=ResumeController.extract_resume_category(parsed_data), parsing_status='completed')
+            resume.save()
         except Exception as e:
             logger.error(f"Error saving instance: {e}", exc_info=True)
             raise ResumeSaveError(f"Failed to save resume data: {e}")
@@ -110,7 +126,7 @@ class ResumeController:
             "projects_outside_of_work": request.query_params.get('projects_outside_of_work', None),
         }
 
-    @staticmethod
+    @staticmethod #TODO move to utils/helpers
     def build_filter_query(params):
         filter_query = {}
 
