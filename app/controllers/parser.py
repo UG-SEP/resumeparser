@@ -69,7 +69,7 @@ class ResumeController:
     @staticmethod
     def process_resume(resume_id):
         try:
-            # import pdb; pdb.set_trace()
+            
             resume = Resume.get(resume_id)
             logger.info(f"Processing resume: {resume_id}")
             if not resume.id:
@@ -93,10 +93,14 @@ class ResumeController:
             parsed_data = extract_info_from_resume(resume_text) 
             logger.info(f"Received parsed data from openai: {parsed_data} for resume: {resume_id}")
             if parsed_data is None:
+                import pdb
+                pdb.set_trace()
                 raise ResumeParsingError(f"Failed to parse data from the resume: {resume_id}")
         
         except Exception as e:
             logger.error(f"Error processing resume: {e}", exc_info=True)
+            import pdb
+            pdb.set_trace()
             raise ResumeProcessingError(f"Failed to process resume: {e}")
 
 
