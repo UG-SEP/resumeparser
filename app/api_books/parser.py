@@ -6,7 +6,7 @@ from app.serializers import ParsedResumeSerializer
 
 def extract_info_from_resume(resume_text):
     prompt_str = """
-    Extract the following information from the resume and provide it in a JSON format as specified below. Ensure that you don't add leading commas, bracket anywhere in the response. By default string datatype should be "not found". Integer datatype should be 0 and boolean datatype should be false
+    Extract the following information from the resume and provide it in a JSON format as specified below. Ensure that you don't add leading commas, bracket anywhere in the response.
 {
     "personal_information": {
         "name": "<string: name of the candidate>",
@@ -22,34 +22,34 @@ def extract_info_from_resume(resume_text):
     "skills": {
         "languages": {
             "proficient": [
-                "<string: name of the language proficient in>",
+                "<string: name of the language proficient in lowercase letter (e.g. python) >",
                 "Can have multiple proficient language at max 3"
             ],
             "average": [
-                "<string: name of the language average in>"
+                "<string: name of the language average in lowercase letter (e.g. python) >"
             ]
         },
         "frameworks": {
             "proficient": [
-                "<string: name of the frameworks proficient in>",
+                "<string: name of the frameworks proficient in lowercase letter (e.g. django) >",
                 "Can have multiple proficient frameworks at max 3"
             ],
             "average": [
-            "<string: name of the framework average in>"
+            "<string: name of the framework average in lowercase letter (e.g. django)>"
             ]
         },
         "technologies": {
             "proficient": [
-                "<string: name of the technologies proficient in>",
+                "<string: name of the technologies proficient in lowercase letter (e.g. github)>",
                 "Can have multiple proficient technologies at max 3"
             ],
             "average": [
-                "<string: name of the technologies average in>"
+                "<string: name of the technologies average in lowercase letter (e.g. github)>"
             ]
         },
         "total_skill_experience": {
-            "<string: name of the skill>": <int: no. of years of experience>,
-            "<string: name of the skill>": <int: no. of years of experience>,
+            "<string: name of the skill>": <float: no. of years of experience>,
+            "<string: name of the skill>": <float: no. of years of experience>,
             "Can have multiple skills"
         },
         "llm_experience": <bool:[true,false]>,
@@ -80,7 +80,7 @@ def extract_info_from_resume(resume_text):
                 "country": "<string: name of the country where company is located>",
                 "joining_month_and_year": "<string: joining_month joining_year>",
                 "leaving_month_and_year": "<string: joining_month joining_year>",
-                "total_duration_in_years": <int: total years worked in this company>,
+                "total_duration_in_years": <float: total years worked in this company>,
                 "company_size_range": "<string: company_size_range (eg. 50-100)> Search on the internet",
                 "total_capital_raised": "<string: total_capital raised by the company> Search on the internet",
                 "company_type": "<string: [service,product]>",
@@ -111,11 +111,11 @@ def extract_info_from_resume(resume_text):
     ],
     "additional_experience_summary": {
         "last_position_held": "<string: Last position held in the last company>",
-        "years_of_full_time_experience_after_graduation": <int: no. of years of experience after graduation>,
-        "total_startup_experience": <int: no. of years of experience in startup>,
-        "total_early_stage_startup_experience": <int: no. of years of experience in early stage startup>,
-        "product_company_experience": <int: no. of years of experience in product based company>,
-        "service_company_experience": <int: no. of years of experience in service based company>,
+        "years_of_full_time_experience_after_graduation": <float: no. of years of experience after graduation>,
+        "total_startup_experience": <float: no. of years of experience in startup>,
+        "total_early_stage_startup_experience": <float: no. of years of experience in early stage startup>,
+        "product_company_experience": <float: no. of years of experience in product based company>,
+        "service_company_experience": <float: no. of years of experience in service based company>,
         "gen_ai_experience": <bool:[true,false]>
     },
     "achievements_awards": {
@@ -177,6 +177,8 @@ def extract_info_from_resume(resume_text):
                 return serializer.data  
             else:
                 logger.error(f"Validation errors: {serializer.errors}",exc_info=True)
+                # import pdb
+                # pdb.set_trace()
                 return None
 
         else:

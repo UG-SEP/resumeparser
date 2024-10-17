@@ -25,62 +25,67 @@ class ResumeSerializer(serializers.ModelSerializer):
         return Resume.bulk_create_resume(resume_objects)
 
 class ProficiencySerializer(serializers.Serializer):
-    proficient = serializers.ListField(child=serializers.CharField(), max_length=3, required=False)
-    average = serializers.ListField(child=serializers.CharField(), required=False)
+    proficient = serializers.ListField(child=serializers.CharField(allow_blank=True), max_length=3, required=False)
+    average = serializers.ListField(child=serializers.CharField(allow_blank=True), required=False)
+
 
 class SkillSerializer(serializers.Serializer):
     languages = ProficiencySerializer(required=False)
     frameworks = ProficiencySerializer(required=False)
     technologies = ProficiencySerializer(required=False)
-    total_skill_experience = serializers.DictField(required=False)
-    llm_experience = serializers.BooleanField(required=False)
+    total_skill_experience = serializers.DictField(required=False, allow_null=True)
+    llm_experience = serializers.BooleanField(required=False)  
     gen_ai_experience = serializers.BooleanField(required=False)
 
 
 class CompanyInformationSerializer(serializers.Serializer):
-    name = serializers.CharField(required=False)
-    last_position_held = serializers.CharField(required=False)
-    city = serializers.CharField(required=False)
-    country = serializers.CharField(required=False)
-    joining_month_and_year = serializers.CharField(required=False)
-    leaving_month_and_year = serializers.CharField(required=False)
-    total_duration_in_years = serializers.IntegerField(required=False)
-    company_size_range = serializers.CharField(required=False)
-    total_capital_raised = serializers.CharField(required=False)
-    company_type = serializers.CharField(required=False)
-    is_faang = serializers.BooleanField(required=False)
-    has_the_company_raised_capital_in_the_last_5_years = serializers.CharField(required=False)
-    is_startup = serializers.BooleanField(required=False)
+    name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    last_position_held = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    city = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    country = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    joining_month_and_year = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    leaving_month_and_year = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    total_duration_in_years = serializers.FloatField(required=False, allow_null=True)  
+    company_size_range = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    total_capital_raised = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    company_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    is_faang = serializers.BooleanField(required=False)  
+    has_the_company_raised_capital_in_the_last_5_years = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    is_startup = serializers.BooleanField(required=False) 
+
 
 class ExperienceSerializer(serializers.Serializer):
-    company_information = CompanyInformationSerializer()
-    positions_held_within_the_company = serializers.ListField(child=serializers.DictField())
+    company_information = CompanyInformationSerializer(required=False)
+    positions_held_within_the_company = serializers.ListField(child=serializers.DictField(), required=False)
+
 
 class EducationSerializer(serializers.Serializer):
-    school_name = serializers.CharField(required=False)
-    degree_name = serializers.CharField(required=False)
-    city = serializers.CharField(required=False)
-    country = serializers.CharField(required=False)
-    year_of_start = serializers.IntegerField(required=False)
-    year_of_graduation = serializers.IntegerField(required=False)
-    duration_in_years = serializers.IntegerField(required=False)
-    mode = serializers.CharField(required=False)
-    degree_level = serializers.CharField(required=False)
-    is_cs_degree = serializers.BooleanField(required=False)
+    school_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    degree_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    city = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    country = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    year_of_start = serializers.IntegerField(required=False, allow_null=True)  
+    year_of_graduation = serializers.IntegerField(required=False, allow_null=True) 
+    duration_in_years = serializers.IntegerField(required=False, allow_null=True)  
+    mode = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    degree_level = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    is_cs_degree = serializers.BooleanField(required=False)  
     is_ml_degree = serializers.BooleanField(required=False)
-    institute_type = serializers.CharField(required=False)
+    institute_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
 
 class ParsedResumeSerializer(serializers.Serializer):
-    personal_information = serializers.DictField()
-    resume_type = serializers.CharField()
-    title = serializers.CharField(required=False)
-    skills = SkillSerializer()
-    education = EducationSerializer(many=True)
+    personal_information = serializers.DictField(required=False, allow_null=True)
+    resume_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    title = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    skills = SkillSerializer(required=False)
+    education = EducationSerializer(many=True, required=False)
     experience = ExperienceSerializer(many=True, required=False)
     projects_outside_of_work = serializers.ListField(child=serializers.DictField(), required=False)
-    additional_experience_summary = serializers.DictField()
-    achievements_awards = serializers.DictField()
-    overall_summary_of_candidate = serializers.CharField()
+    additional_experience_summary = serializers.DictField(required=False, allow_null=True)
+    achievements_awards = serializers.DictField(required=False, allow_null=True)
+    overall_summary_of_candidate = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
 
     def try_fix_json_string(self, json_string):
         try:
@@ -107,9 +112,8 @@ class ParsedResumeSerializer(serializers.Serializer):
             elif isinstance(value, str):
                 if value.isdigit():
                     data[key] = int(value)
-            
-            elif value is None or value == "":
-                data[key] = "null"
+                else:
+                    data[key] = value.lower()
         return data
 
     def validate(self, data):

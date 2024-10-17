@@ -165,7 +165,7 @@ class ResumeController:
         projects_outside_of_work_query(params,filter_query)
         skills_query(params,filter_query)
         proficient_technologies_query(params,filter_query)
-
+        print(filter_query)
         return filter_query
 
     @staticmethod
@@ -234,9 +234,3 @@ class ResumeController:
             writer.writerow(row)
 
         return response
-
-
-def split_and_strip(params, key):
-        if key in params:
-            return [tech.strip() for tech in params[key].split(',')]
-        return []

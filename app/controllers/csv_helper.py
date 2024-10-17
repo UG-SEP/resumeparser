@@ -132,3 +132,6 @@ def overall_summary_data(parsed_data,row):
 
 def json_data(parsed_data,row):
     row.append(json.dumps(parsed_data))
+
+
+ 

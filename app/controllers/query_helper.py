@@ -1,7 +1,8 @@
+import re
 def full_time_experience_query(params,filter_query):
     if params.get('full_time_experience'):
         filter_query["parsed_data.additional_experience_summary.years_of_full_time_experience_after_graduation"] =  {
-                "$gte": int(params['full_time_experience'])
+                "$gte": float(params['full_time_experience'])
                 }
 
 def skills_experience_query(params,filter_query):
@@ -11,17 +12,19 @@ def skills_experience_query(params,filter_query):
         skill_queries = []
         for skill in skills:
             skill_name, experience_years = skill.split('|')
-            experience_years = int(experience_years)
-
+            experience_years = float(experience_years)
             skill_query = {
-                f"parsed_data.skills.total_skill_experience.{skill_name}": {
+                f"parsed_data.skills.total_skill_experience.{skill_name.lower()}": {
                     "$gte": experience_years
                 }
             }
             skill_queries.append(skill_query)
 
         if skill_queries:
-            filter_query["$or"] = skill_queries
+            if "$and" in filter_query:
+                filter_query["$and"].append(skill_queries)
+            else:
+                filter_query["$and"] = skill_queries
 
 def company_type_query(params,filter_query):
     if params.get('company_type') == 'product':
@@ -32,13 +35,13 @@ def company_type_query(params,filter_query):
 def product_company_experience_query(params,filter_query):
     if params.get('product_company_experience'):
         filter_query["parsed_data.additional_experience_summary.product_company_experience"] = {
-            "$gte": int(params['product_company_experience'])
+            "$gte": float(params['product_company_experience'])
         }
 
 def startup_experience_query(params,filter_query):
     if params.get('startup_experience'):
         filter_query["parsed_data.additional_experience_summary.total_startup_experience"] = {
-            "$gte": int(params['startup_experience'])
+            "$gte": float(params['startup_experience'])
         }
 
 def degree_type_query(params,filter_query):
@@ -69,7 +72,7 @@ def is_cs_degree_query(params,filter_query):
 def early_stage_startup_experience_query(params,filter_query):
     if params.get('early_stage_startup_experience'):
         filter_query["parsed_data.additional_experience_summary.total_early_stage_startup_experience"] = {
-            "$gte": int(params['early_stage_startup_experience'])
+            "$gte": float(params['early_stage_startup_experience'])
         }
 
 def institute_type_query(params,filter_query):
@@ -86,7 +89,7 @@ def llm_experience_query(params,filter_query):
 def service_company_experience_query(params,filter_query):
     if params.get('service_company_experience'):
         filter_query["parsed_data.additional_experience_summary.service_company_experience"] = {
-            "$gte": int(params['service_company_experience'])
+            "$gte": float(params['service_company_experience'])
         }
 
 def resume_type_query(params,filter_query):
@@ -99,78 +102,60 @@ def projects_outside_of_work_query(params,filter_query):
     if params.get('projects_outside_of_work'):
         filter_query["parsed_data.projects_outside_of_work"] = {"$exists": True, "$ne": []}
 
-def skills_query(params,filter_query):
+def skills_query(params, filter_query):
     if params.get('skills'):
-        skills = split_and_strip(params,'skills')
+        skills = split_and_strip(params, 'skills')
         if skills:
-            pattern = '|'.join(map(re.escape, skills))
-            filter_query = {
-                "$or": [
-                    {
-                        "parsed_data.skills.technologies.proficient": {
-                            "$regex": pattern,
-                            "$options": "i"
-                        }
-                    },
-                    {
-                        "parsed_data.skills.languages.proficient": {
-                            "$regex": pattern,
-                            "$options": "i"
-                        }
-                    },
-                    {
-                        "parsed_data.skills.frameworks.proficient": {
-                            "$regex": pattern,
-                            "$options": "i"
-                        }
-                    },
-                    {
-                        "parsed_data.skills.frameworks.average": {
-                            "$regex": pattern,
-                            "$options": "i"
-                        }
-                    },
-                    {
-                        "parsed_data.skills.languages.average": {
-                            "$regex": pattern,
-                            "$options": "i"
-                        }
-                    },
-                    {
-                        "parsed_data.skills.technologies.average": {
-                            "$regex": pattern,
-                            "$options": "i"
-                        }
-                    }
-                ]
-            }
+            skill_conditions = []
+
+            for skill in skills:
+                skill_conditions.append({
+                    "$or": [
+                       
+                        {"parsed_data.skills.technologies.proficient": {"$in": [skill]}},
+                        {"parsed_data.skills.languages.proficient": {"$in": [skill]}},
+                        {"parsed_data.skills.frameworks.proficient": {"$in": [skill]}},
+                        {"parsed_data.skills.frameworks.average": {"$in": [skill]}},
+                        {"parsed_data.skills.languages.average": {"$in": [skill]}},
+                        {"parsed_data.skills.technologies.average": {"$in": [skill]}}
+                    ]
+                })
+
+            if skill_conditions:
+                if "$and" in filter_query:
+                    filter_query["$and"].extend(skill_conditions)
+                else:
+                    filter_query["$and"] = skill_conditions
+
+    return filter_query
+
+
 
 def proficient_technologies_query(params,filter_query):
     if params.get('proficient_technologies'):
         proficient_technologies = split_and_strip(params, 'proficient_technologies')
         if proficient_technologies:
-            pattern = '|'.join(map(re.escape, proficient_technologies))
+            proficient_technologies_condition = []
+            for proficient_technology in proficient_technologies:
+                proficient_technologies_condition.append({
+                    "$or": [
+                       
+                        {"parsed_data.skills.technologies.proficient": {"$in": [proficient_technology]}},
+                        {"parsed_data.skills.languages.proficient": {"$in": [proficient_technology]}},
+                        {"parsed_data.skills.frameworks.proficient": {"$in": [proficient_technology]}},
+                    ]
+                })
+            if proficient_technologies_condition:
+                if "$and" in filter_query:
+                    filter_query["$and"].extend(proficient_technologies_condition)
+                else:
+                    filter_query["$and"] = proficient_technologies_condition
 
-            filter_query = {
-                "$or": [
-                    {
-                        "parsed_data.skills.technologies.proficient": {
-                            "$regex": pattern,
-                            "$options": "i"
-                        }
-                    },
-                    {
-                        "parsed_data.skills.languages.proficient": {
-                            "$regex": pattern,
-                            "$options": "i"
-                        }
-                    },
-                    {
-                        "parsed_data.skills.frameworks.proficient": {
-                            "$regex": pattern,
-                            "$options": "i"
-                        }
-                    }
-                ]
-            }
+    return filter_query
+            
 
+
+def split_and_strip(params, key):
+        if key in params:
+            return [tech.strip() for tech in params[key].split(',')]
+        return []
