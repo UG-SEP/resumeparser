@@ -2,10 +2,11 @@ import requests
 import json
 import os
 from resumeparser.settings import logger
+from app.serializers import ParsedResumeSerializer
 
 def extract_info_from_resume(resume_text):
     prompt_str = """
-    Extract the following information from the resume and provide it in a JSON format as specified below. Ensure that you don't add leading commas, bracket anywhere in the response
+    Extract the following information from the resume and provide it in a JSON format as specified below. Ensure that you don't add leading commas, bracket anywhere in the response. By default string datatype should be "not found". Integer datatype should be 0 and boolean datatype should be false
 {
     "personal_information": {
         "name": "<string: name of the candidate>",
@@ -157,51 +158,35 @@ def extract_info_from_resume(resume_text):
             logger.info(f"Response content: {response.text}")
             json_data = response.json()
             response_content = json_data.get('choices', [{}])[0].get('message', {}).get('content', None)
-            response_content = response_content.replace("```json", "").replace("```", "")
-            logger.info(f"Response content: {response_content}")
+
+            response_content = response_content.replace("```json", "").replace("```", "").strip()
+            logger.info(f"Cleaned Response content: {response_content}")
+
             try:
-                parsed_data = json.loads(response_content)
-                logger.info("Information extracted successfully.")
-                return parsed_data
+                response_dict = json.loads(response_content) 
             except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse JSON data: {e}")
-                logger.info(f"Trying to fix JSON data...  {response_content}")
-                import pdb
-                pdb.set_trace()
-                return fix_json(response_content)
-                 
+                # import pdb
+                # pdb.set_trace()
+                logger.error(f"JSON decoding error: {e} - Response content: {response_content}")
+                return None
+
+            serializer = ParsedResumeSerializer(data=response_dict)
+
+            if serializer.is_valid():
+                logger.info("Information extracted and validated successfully.")
+                return serializer.data  
+            else:
+                logger.error(f"Validation errors: {serializer.errors}",exc_info=True)
+                return None
+
         else:
-            logger.error(f"Error in Open AI API response: {response.status_code}")
-            import pdb
-            pdb.set_trace()
+            logger.error(f"Error in API response: {response.status_code}")
             return None
 
     except requests.RequestException as e:
         logger.error(f"API request error: {e}", exc_info=True)
-        import pdb
-        pdb.set_trace()
         return None
 
 
-import json
-import re
-
-def fix_json(json_string):
-    try:
-        json_string = re.sub(r',\s*([\]}])', r'\1', json_string)
-
-        json_string = json_string.replace("'", '"')
-
-        json_string = re.sub(r'([{,]\s*)(\w+)\s*:', r'\1"\2":', json_string)
-
-        if not json_string.startswith(('{', '[')):
-            json_string = '{' + json_string + '}'
-        
-        return json.loads(json_string)
-    
-    except json.JSONDecodeError as e:
-        logger.error(f"Unable to fix Json {json_string}")
-        return None
-        
 
 

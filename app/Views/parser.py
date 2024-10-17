@@ -7,38 +7,39 @@ from app.models import Resume
 from app.controllers import ResumeController
 from resumeparser.settings import logger
 
-@api_view(['POST', 'GET'])
+@api_view(['POST'])
 def resume_upload_view(request):
-    logger.info(f"Received request method: {request.method}, path: {request.path}")
     
-    if request.method == 'POST':
-        resume_files = request.FILES.getlist('resumes')
+    resume_files = request.FILES.getlist('resumes')
         
-        if not resume_files:
-            return Response({"error": "No files uploaded."}, status=status.HTTP_400_BAD_REQUEST)
+    if not resume_files:
+        return Response({"error": "No files uploaded."}, status=status.HTTP_400_BAD_REQUEST)
         
-        # TODO: Extract the validated_data extract the instance_info and convert it into dict / json and then bulk save 
-        # and pass to the process_resume_task
-        serializer = ResumeSerializer()
-        created_resumes = serializer.create_bulk(resume_files) 
-        # resume_ids = [str(resume.id) for resume in created_resumes] 
-        #  resumes = Resume.get_all(resume_id)
-        # resume_ids = [resume.id for resume in created_resumes]
-        for resume in created_resumes:
-            print(resume)
-            print(type(resume.id))
-            process_resume_task.delay(resume.id)
+    # TODO: Extract the validated_data extract the instance_info and convert it into dict / json and then bulk save 
+    # and pass to the process_resume_task
+    serializer = ResumeSerializer()
+    created_resumes = serializer.create_bulk(resume_files) 
+    # resume_ids = [str(resume.id) for resume in created_resumes] 
+    #  resumes = Resume.get_all(resume_id)
+    # resume_ids = [resume.id for resume in created_resumes]
+    for resume in created_resumes:
+        print(resume)
+        print(type(resume.id))
+        process_resume_task.delay(resume.id)
 
-        logger.info(f"{len(resume_files)} Resume has been passed to the celery task for background processing: ")
-        return Response(
-            {"message": f"{len(resume_files)} resumes uploaded and processing started."},
-            status=status.HTTP_201_CREATED
-        )
+    logger.info(f"{len(resume_files)} Resume has been passed to the celery task for background processing: ")
+    return Response(
+        {"message": f"{len(resume_files)} resumes uploaded and processing started."},
+        status=status.HTTP_201_CREATED
+    )
+        
 
-    elif request.method == 'GET': #TODO separate url 
-        try:
-            #TODO : Donot pass the request directly used serializer to serializer the data and then pass and take request as optimal
-            result = ResumeController.filter_resume(request)
-            return result
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def retrieve_data_view(request):
+    try:
+        #TODO : Donot pass the request directly used serializer to serializer the data and then pass and take request as optimal
+        result = ResumeController.filter_resume(request)
+        return result
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

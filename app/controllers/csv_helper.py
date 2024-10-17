@@ -57,17 +57,18 @@ def skills_data(parsed_data,row):
         proficient = skills.get('proficient', [])
         average = skills.get('average', [])
         combined = proficient[:5] + average[:5 - len(proficient)] 
-        row += combined + [''] * (5 - len(combined)) 
-        total_skill_experience = parsed_data.get('skills', {}).get('total_skill_experience', {})
-        top_5_skills = list(total_skill_experience.items())[:5] 
-        row += [parsed_data.get('skills', {}).get('llm_experience', False),
-        parsed_data.get('skills', {}).get('gen_ai_experience', False)]
-        row += [f'{skill}: {exp}' for skill, exp in top_5_skills] + [''] * (5 - len(top_5_skills))
+        row += combined + [''] * (5 - len(combined))  
+
+    total_skill_experience = parsed_data.get('skills', {}).get('total_skill_experience', {})
+    top_5_skills = list(total_skill_experience.items())[:5]  
+    row += [parsed_data.get('skills', {}).get('llm_experience', False),
+            parsed_data.get('skills', {}).get('gen_ai_experience', False)]
+    row += [f'{skill}: {exp}' for skill, exp in top_5_skills] + [''] * (5 - len(top_5_skills))  
 
 
 def educations_data(parsed_data,row):
-    educations = [parsed_data.get('education', {})] 
-    educations = educations[:5] + [{}] * (5 - len(educations))  
+    educations = parsed_data.get('education', [])[:5]
+    educations = educations + [{}] * (5 - len(educations))  
     for edu in educations:
         row += [
             edu.get('school_name', ''),
@@ -84,15 +85,11 @@ def educations_data(parsed_data,row):
         ]
 
 def experience_data(parsed_data,row):
-    experiences = parsed_data.get('experience', [])
-    
-    if not isinstance(experiences, list):
-        experiences = []  
-
-    experiences = experiences[:5]  
+    experiences = parsed_data.get('experience', [])[:5]  
+    experiences = experiences + [{}] * (5 - len(experiences))  
     for exp in experiences:
         company_info = exp.get('company_information', {})
-        position = exp.get('positions_held_within_the_company', [{}])[0]  
+        position = exp.get('positions_held_within_the_company', [{}])[0]
         row += [
             company_info.get('name', ''),
             position.get('position_name', ''),
@@ -104,14 +101,14 @@ def experience_data(parsed_data,row):
             company_info.get('company_size_range'),
             company_info.get('total_capital_raised'),
             company_info.get('company_type'),
-            company_info.get('is_fang'),
+            company_info.get('is_faang'),
             company_info.get('has_the_company_raised_capital_in_the_last_5_years?'),
             company_info.get('is_startup')
         ]
 
 def project_data(parsed_data,row):
     projects = parsed_data.get('projects_outside_of_work', [])[:5]  
-    projects = projects + [{}] * (5 - len(projects))  
+    projects = projects + [{}] * (5 - len(projects)) 
     for project in projects:
         row += [
             project.get('project_name', ''),

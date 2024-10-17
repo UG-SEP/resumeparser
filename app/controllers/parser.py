@@ -18,6 +18,8 @@ from rest_framework import status
 import csv
 from django.http import HttpResponse
 import json
+from .query_helper import *
+from .csv_helper import *
 
 nltk.download('stopwords')
 
@@ -93,14 +95,14 @@ class ResumeController:
             parsed_data = extract_info_from_resume(resume_text) 
             logger.info(f"Received parsed data from openai: {parsed_data} for resume: {resume_id}")
             if parsed_data is None:
-                import pdb
-                pdb.set_trace()
+                # import pdb
+                # pdb.set_trace()
                 raise ResumeParsingError(f"Failed to parse data from the resume: {resume_id}")
         
         except Exception as e:
             logger.error(f"Error processing resume: {e}", exc_info=True)
-            import pdb
-            pdb.set_trace()
+            # import pdb
+            # pdb.set_trace()
             raise ResumeProcessingError(f"Failed to process resume: {e}")
 
 
@@ -115,6 +117,7 @@ class ResumeController:
             raise ResumeSaveError(f"Failed to save resume data: {e}")
 
         logger.info(StatusMessages.SUCCESS)
+        logger.info(parsed_data)
         return {"message": StatusMessages.SUCCESS, "data": parsed_data}
     
     @staticmethod
@@ -144,172 +147,24 @@ class ResumeController:
     def build_filter_query(params):
         filter_query = {}
 
-        if params.get('full_time_experience'):
-            filter_query["parsed_data.additional_experience_summary.years_of_full_time_experience_after_graduation"] = {
-                "$gte": int(params['full_time_experience'])
-            }
-        
-        if params.get('skills_experience'):
-            skills = split_and_strip(params, "skills_experience")
-
-            skill_queries = []
-            for skill in skills:
-                skill_name, experience_years = skill.split('|')
-                experience_years = int(experience_years)
-
-                skill_query = {
-                    f"parsed_data.skills.total_skill_experience.{skill_name}": {
-                        "$gte": experience_years
-                    }
-                }
-                skill_queries.append(skill_query)
-
-            if skill_queries:
-                filter_query["$or"] = skill_queries
-
-
-        if params.get('company_type') == 'product':
-            filter_query["parsed_data.additional_experience_summary.product_company_experience"] = {
-                "$gt": 0
-            }
-
-        if params.get('company_type') == 'startup':
-            filter_query["parsed_data.additional_experience_summary.total_startup_experience"] = {
-                "$gt": 0 
-            }
-
-        if params.get('product_company_experience'):
-            filter_query["parsed_data.additional_experience_summary.product_company_experience"] = {
-                "$gte": int(params['product_company_experience'])
-            }
-
-        if params.get('startup_experience'):
-            filter_query["parsed_data.additional_experience_summary.total_startup_experience"] = {
-                "$gte": int(params['startup_experience'])
-            }
-
-        if params.get('degree_type'):
-            filter_query["parsed_data.education.degree_level"] = {
-                "$regex": f"^{params['degree_type']}$", "$options": "i"
-            }
-
-        if params.get('last_position_held'):
-            filter_query["parsed_data.additional_experience_summary.last_position_held"] = {
-                "$regex": f".*{re.escape(params['last_position_held'])}.*",
-                "$options": "i"
-            }
-
-
-        if params.get('gen_ai_experience'):
-            filter_query["parsed_data.skills.gen_ai_experience"] = params['gen_ai_experience'].lower() == 'true'
-        
-        if params.get('is_ml_degree'):
-            filter_query["parsed_data.education.is_ml_degree"] = params['is_ml_degree'].lower() == 'true'
-
-        if params.get('is_cs_degree'):
-            filter_query["parsed_data.education.is_cs_degree"] = params['is_cs_degree'].lower() == 'true'
-
-        if params.get('early_stage_startup_experience'):
-            filter_query["parsed_data.additional_experience_summary.total_early_stage_startup_experience"] = {
-                "$gte": int(params['early_stage_startup_experience'])
-            }
-
-        if params.get('institute_type'):
-            filter_query["parsed_data.education.institute_type"] = {
-            "$regex": f"^{re.escape(params['institute_type'])}$",
-            "$options": "i"  
-        }
-
-        if params.get('llm_experience'):
-            filter_query["parsed_data.skills.llm_experience"] = params['llm_experience'].lower() == 'true'
-
-        if params.get('service_company_experience'):
-            filter_query["parsed_data.additional_experience_summary.service_company_experience"] = {
-                "$gte": int(params['service_company_experience'])
-            }
-
-        if params.get('resume_type'):
-            filter_query["parsed_data.resume_type"] = {
-                "$regex": f"^{params['resume_type']}$", "$options": "i"
-            }
-
-        if params.get('projects_outside_of_work'):
-            filter_query["parsed_data.projects_outside_of_work"] = {"$exists": True, "$ne": []}
-        
-        if params.get('skills'):
-            skills = split_and_strip(params,'skills')
-            if skills:
-                pattern = '|'.join(map(re.escape, skills))
-                filter_query.update({
-                    "$or": [
-                        {
-                            "parsed_data.skills.technologies.proficient": {
-                                "$regex": pattern,
-                                "$options": "i"
-                            }
-                        },
-                        {
-                            "parsed_data.skills.languages.proficient": {
-                                "$regex": pattern,
-                                "$options": "i"
-                            }
-                        },
-                        {
-                            "parsed_data.skills.frameworks.proficient": {
-                                "$regex": pattern,
-                                "$options": "i"
-                            }
-                        },
-                        {
-                            "parsed_data.skills.frameworks.average": {
-                                "$regex": pattern,
-                                "$options": "i"
-                            }
-                        },
-                        {
-                            "parsed_data.skills.languages.average": {
-                                "$regex": pattern,
-                                "$options": "i"
-                            }
-                        },
-                        {
-                            "parsed_data.skills.technologies.average": {
-                                "$regex": pattern,
-                                "$options": "i"
-                            }
-                        }
-                    ]
-                })
-
-
-        if params.get('proficient_technologies'):
-            proficient_technologies = split_and_strip(params, 'proficient_technologies')
-            if proficient_technologies:
-                pattern = '|'.join(map(re.escape, proficient_technologies))
-
-                filter_query.update({
-                    "$or": [
-                        {
-                            "parsed_data.skills.technologies.proficient": {
-                                "$regex": pattern,
-                                "$options": "i"
-                            }
-                        },
-                        {
-                            "parsed_data.skills.languages.proficient": {
-                                "$regex": pattern,
-                                "$options": "i"
-                            }
-                        },
-                        {
-                            "parsed_data.skills.frameworks.proficient": {
-                                "$regex": pattern,
-                                "$options": "i"
-                            }
-                        }
-                    ]
-                })
-
+        full_time_experience_query(params,filter_query)
+        skills_experience_query(params,filter_query)
+        company_type_query(params,filter_query)
+        product_company_experience_query(params,filter_query)
+        startup_experience_query(params,filter_query)
+        degree_type_query(params,filter_query)
+        last_position_held_query(params,filter_query)
+        gen_ai_experience_query(params,filter_query)
+        is_ml_degree_query(params,filter_query)
+        is_cs_degree_query(params,filter_query)
+        early_stage_startup_experience_query(params,filter_query)
+        institute_type_query(params,filter_query)
+        llm_experience_query(params,filter_query)
+        service_company_experience_query(params,filter_query)
+        resume_type_query(params,filter_query)
+        projects_outside_of_work_query(params,filter_query)
+        skills_query(params,filter_query)
+        proficient_technologies_query(params,filter_query)
 
         return filter_query
 
@@ -352,130 +207,29 @@ class ResumeController:
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="resumes.csv"'
         writer = csv.writer(response)
-        
-        headers = ['Name', 'Email', 'Mobile', 'City', 'Country', 'Title']
-
-        headers += [f'Language{i+1}' for i in range(5)]
-        headers += [f'Framework{i+1}' for i in range(5)]
-        headers += [f'Technology{i+1}' for i in range(5)]
-        
-        headers += ['LLM Experience', 'Gen AI Experience'] + [f'Skill_Experience_{i+1}' for i in range(5)]
-        
-        for i in range(5):
-            headers += [f'School_Name{i+1}', f'Degree_Name{i+1}', f'City{i+1}', f'Country{i+1}', 
-                        f'Year_Of_Start{i+1}', f'Year_Of_Graduation{i+1}', f'Duration_In_Years{i+1}', 
-                        f'Degree_Level{i+1}',f'Is Cs Degree{i+1}',f'Is ML Degree{i+1}',f'Institute Type{i+1}']
-
-        for i in range(5):
-            headers += [f'Company_Name{i+1}', f'Position_Held{i+1}', f'City{i+1}', f'Country{i+1}', 
-                        f'Joining_Date{i+1}', f'Leaving_Date{i+1}', f'Total_Duration{i+1}',f'Company Size Range{i+1}',
-                        f'Total Capital Raised{i+1}',f'Company Type{i+1}',f'Is Faang{i+1}',
-                         f'has_the_company_raised_capital_in_the_last_5_years{i+1}',
-                         f'Is Startup{i+1}']
-        
-        for i in range(5):
-            headers += [f'Project_Name{i+1}', f'Project_Description{i+1}']
-
-        headers += [
-            'Last_Position_Held', 'Years_Of_Full_Time_Experience', 'Total_Startup_Experience', 
-            'Total_Early_Stage_Startup_Experience', 'Product_Company_Experience', 
-            'Service_Company_Experience', 'Gen_AI_Experience', 'Overall_Summary'
-        ]
-        headers.append('Parsed Data')
+        headers = []
+        personal_info_headers(headers)
+        skills_headers(headers)
+        education_headers(headers)
+        experience_headers(headers)
+        project_headers(headers)
+        additional_experience_summary_headers(headers)
+        overall_summary_headers(headers)
+        parsed_data_header(headers)
 
         writer.writerow(headers)
         
         for resume in resumes:
             row = []
             parsed_data = resume.get('parsed_data', {})
-
-            personal_info = parsed_data.get('personal_information', {})
-            row += [
-                personal_info.get('name', ''),
-                personal_info.get('email', ''),
-                personal_info.get('mobile', ''),
-                personal_info.get('city', ''),
-                personal_info.get('country', ''),
-                parsed_data.get('title', '')
-            ]
-
-            for skill_type in ['languages', 'frameworks', 'technologies']:
-                skills = parsed_data.get('skills', {}).get(skill_type, {})
-                proficient = skills.get('proficient', [])
-                average = skills.get('average', [])
-                combined = proficient[:5] + average[:5 - len(proficient)] 
-                row += combined + [''] * (5 - len(combined))  
-
-            total_skill_experience = parsed_data.get('skills', {}).get('total_skill_experience', {})
-            top_5_skills = list(total_skill_experience.items())[:5]  
-            row += [parsed_data.get('skills', {}).get('llm_experience', False),
-                    parsed_data.get('skills', {}).get('gen_ai_experience', False)]
-            row += [f'{skill}: {exp}' for skill, exp in top_5_skills] + [''] * (5 - len(top_5_skills))  
-
-            educations = [parsed_data.get('education', {})]  
-            educations = educations[:5] + [{}] * (5 - len(educations))  
-            for edu in educations:
-                row += [
-                    edu.get('school_name', ''),
-                    edu.get('degree_name', ''),
-                    edu.get('city', ''),
-                    edu.get('country', ''),
-                    edu.get('year_of_start', ''),
-                    edu.get('year_of_graduation', ''),
-                    edu.get('duration_in_years', ''),
-                    edu.get('degree_level', ''),
-                    edu.get('is_cs_degree'),
-                    edu.get('is_ml_degree'),
-                    edu.get('institute_type')
-                ]
-                
-            # BUG: the response in the parsed_data used this {},[{}] to make sub-fields of experience field
-            # Parsed_data is received after filtering the get request means there is some issue in the given data from the gpt
-            # As the gpt response is just converted into json in stored in the mongodb
-
-            #print(parsed_data)
-            experiences = parsed_data.get('experience', [])[:5]  
-            experiences = experiences + [{}] * (5 - len(experiences))  
-            for exp in experiences:
-                company_info = exp.get('company_information', {})
-                position = exp.get('positions_held_within_the_company', [{}])[0]
-                row += [
-                    company_info.get('name', ''),
-                    position.get('position_name', ''),
-                    company_info.get('city', ''),
-                    company_info.get('country', ''),
-                    company_info.get('joining_month_and_year', ''),
-                    company_info.get('leaving_month_and_year', ''),
-                    company_info.get('total_duration_in_years', ''),
-                    company_info.get('company_size_range'),
-                    company_info.get('total_capital_raised'),
-                    company_info.get('company_type'),
-                    company_info.get('is_fang'),
-                    company_info.get('has_the_company_raised_capital_in_the_last_5_years?'),
-                    company_info.get('is_startup')
-                ]
-
-            projects = parsed_data.get('projects_outside_of_work', [])[:5]  
-            projects = projects + [{}] * (5 - len(projects)) 
-            for project in projects:
-                row += [
-                    project.get('project_name', ''),
-                    project.get('project_description', '')
-                ]
-            
-            additional_experience = parsed_data.get('additional_experience_summary', {})
-            row += [
-                additional_experience.get('last_position_held', ''),
-                additional_experience.get('years_of_full_time_experience_after_graduation', ''),
-                additional_experience.get('total_startup_experience', ''),
-                additional_experience.get('total_early_stage_startup_experience', ''),
-                additional_experience.get('product_company_experience', ''),
-                additional_experience.get('service_company_experience', ''),
-                additional_experience.get('gen_ai_experience', '')
-            ]
-
-            row.append(parsed_data.get('overall_summary_of_candidate', ''))
-            row.append(json.dumps(parsed_data))
+            personal_info_data(parsed_data,row)
+            skills_data(parsed_data,row)
+            educations_data(parsed_data,row)
+            experience_data(parsed_data,row)
+            project_data(parsed_data,row)
+            additional_experience_summary_data(parsed_data,row)
+            overall_summary_data(parsed_data,row)
+            json_data(parsed_data,row)
 
             writer.writerow(row)
 
