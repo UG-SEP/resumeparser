@@ -4,7 +4,7 @@ from resumeparser.settings import logger
 import uuid
 from app.exceptions import ResumeNotFoundError, ResumeProcessingError, ResumeTextExtractionError, ResumeParsingError, ResumeSaveError
 from uuid import UUID
-
+import os
 
 class Resume(models.Model):
     STATUS_CHOICES = [
@@ -112,3 +112,9 @@ class Resume(models.Model):
     @classmethod
     def bulk_create_resume(cls,resume_objects):
         return Resume.objects.bulk_create(resume_objects)
+
+    def delete_file(self):
+        if self.file:
+            if os.path.isfile(self.file.path):
+                os.remove(self.file.path)
+                logger.info(f"File deleted : {self.file.path}")

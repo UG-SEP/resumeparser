@@ -20,6 +20,7 @@ from django.http import HttpResponse
 import json
 from .query_helper import *
 from .csv_helper import *
+from pymongo import ReturnDocument
 
 nltk.download('stopwords')
 
@@ -107,25 +108,52 @@ class ResumeController:
 
 
         try:
-            mongo_doc_id = collection.insert_one({
-                'parsed_data': parsed_data
-            }).inserted_id
-            resume.update(parsed_data_id=mongo_doc_id, resume_category=ResumeController.extract_resume_category(parsed_data), parsing_status='completed')
-            resume.save()
+            email_to_check = parsed_data.get('personal_information', {}).get('email')
+
+            if email_to_check:
+                existing_document = collection.find_one({"parsed_data.personal_information.email": email_to_check})
+                
+                if existing_document:
+                    mongo_doc_id = collection.find_one_and_update(
+                        {"parsed_data.personal_information.email": email_to_check},  
+                        {"$set": {'parsed_data': parsed_data}}, 
+                        return_document=ReturnDocument.AFTER
+                    ).get('_id')
+                    
+                    logger.info(f"Updated existing document with ID: {mongo_doc_id}")
+
+                else:
+                    mongo_doc_id = collection.insert_one({
+                        'parsed_data': parsed_data
+                    }).inserted_id
+                    
+                    logger.info(f"Inserted new document with ID: {mongo_doc_id}")
+                
+                resume.update(
+                    parsed_data_id=mongo_doc_id, 
+                    resume_category=ResumeController.extract_resume_category(parsed_data), 
+                    parsing_status='completed'
+                )
+                resume.save()
+            
+            else:
+                raise ValueError("Email not found in parsed_data")
+
         except Exception as e:
             logger.error(f"Error saving instance: {e}", exc_info=True)
             raise ResumeSaveError(f"Failed to save resume data: {e}")
 
         logger.info(StatusMessages.SUCCESS)
         logger.info(parsed_data)
+        resume.delete_file()
         return {"message": StatusMessages.SUCCESS, "data": parsed_data}
     
     @staticmethod
     def extract_query_params(request):
         return {
             "skills_experience": request.query_params.get('skills_experience',None),
-            "skills": request.query_params.get('skills',None),
-            "proficient_technologies": request.query_params.get('proficient_technologies',None),
+            "skills_and": request.query_params.get('skills_and',None),
+            "proficient_technologies_and": request.query_params.get('proficient_technologies_and',None),
             "full_time_experience": request.query_params.get('full_time_experience', None),
             "company_type": request.query_params.get('company_type', None),
             "product_company_experience": request.query_params.get('product_company_experience', None),
@@ -141,6 +169,9 @@ class ResumeController:
             "service_company_experience": request.query_params.get('service_company_experience', None),
             "resume_type": request.query_params.get('resume_type', None),
             "projects_outside_of_work": request.query_params.get('projects_outside_of_work', None),
+            "time_filter": request.query_params.get('time_filter',None),
+            "skills_or": request.query_params.get('skills_or',None),
+            "proficient_technologies_or" : request.query_params.get('proficient_technologies_or',None)
         }
 
     @staticmethod #TODO move to utils/helpers
@@ -163,8 +194,21 @@ class ResumeController:
         service_company_experience_query(params,filter_query)
         resume_type_query(params,filter_query)
         projects_outside_of_work_query(params,filter_query)
-        skills_query(params,filter_query)
-        proficient_technologies_query(params,filter_query)
+        skills_and_query(params,filter_query)
+        proficient_technologies_and_query(params,filter_query)
+        skills_or_query(params,filter_query)
+        proficient_technologies_or_query(params,filter_query)
+        time_filter = params['time_filter']
+        if time_filter == "one_hour":
+            one_hour_filter(params,filter_query)
+        elif time_filter == "six_hour":
+            six_hour_filter(params,filter_query)
+        elif time_filter == "tweleve_hour":
+            tweleve_hour_filter(params,filter_query)
+        elif time_filter == "one_day":
+            one_day_filter(params,filter_query)
+        elif time_filter == "seven_day":
+            seven_day_filter(params,filter_query)
         print(filter_query)
         return filter_query
 

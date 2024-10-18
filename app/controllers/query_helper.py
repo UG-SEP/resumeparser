@@ -1,4 +1,9 @@
 import re
+from datetime import datetime, timedelta
+from app.models import Resume
+from django.utils import timezone
+from bson import ObjectId
+
 def full_time_experience_query(params,filter_query):
     if params.get('full_time_experience'):
         filter_query["parsed_data.additional_experience_summary.years_of_full_time_experience_after_graduation"] =  {
@@ -102,9 +107,9 @@ def projects_outside_of_work_query(params,filter_query):
     if params.get('projects_outside_of_work'):
         filter_query["parsed_data.projects_outside_of_work"] = {"$exists": True, "$ne": []}
 
-def skills_query(params, filter_query):
-    if params.get('skills'):
-        skills = split_and_strip(params, 'skills')
+def skills_and_query(params, filter_query):
+    if params.get('skills_and'):
+        skills = split_and_strip(params, 'skills_and')
         if skills:
             skill_conditions = []
 
@@ -131,12 +136,12 @@ def skills_query(params, filter_query):
 
 
 
-def proficient_technologies_query(params,filter_query):
-    if params.get('proficient_technologies'):
-        proficient_technologies = split_and_strip(params, 'proficient_technologies')
-        if proficient_technologies:
+def proficient_technologies_and_query(params,filter_query):
+    if params.get('proficient_technologies_and'):
+        proficient_technologies_and = split_and_strip(params, 'proficient_technologies_and')
+        if proficient_technologies_and:
             proficient_technologies_condition = []
-            for proficient_technology in proficient_technologies:
+            for proficient_technology in proficient_technologies_and:
                 proficient_technologies_condition.append({
                     "$or": [
                        
@@ -152,7 +157,89 @@ def proficient_technologies_query(params,filter_query):
                     filter_query["$and"] = proficient_technologies_condition
 
     return filter_query
+
+
+def skills_or_query(params, filter_query):
+    if params.get('skills_or'):
+        skills = split_and_strip(params, 'skills_or')
+        if skills:
+            skill_conditions = []
+
+            for skill in skills:
+                skill_conditions.append({
+                    "$or": [
+                       
+                        {"parsed_data.skills.technologies.proficient": {"$in": [skill]}},
+                        {"parsed_data.skills.languages.proficient": {"$in": [skill]}},
+                        {"parsed_data.skills.frameworks.proficient": {"$in": [skill]}},
+                        {"parsed_data.skills.frameworks.average": {"$in": [skill]}},
+                        {"parsed_data.skills.languages.average": {"$in": [skill]}},
+                        {"parsed_data.skills.technologies.average": {"$in": [skill]}}
+                    ]
+                })
+
+            if skill_conditions:
+                if "$or" in filter_query:
+                    filter_query["$or"].extend(skill_conditions)
+                else:
+                    filter_query["$or"] = skill_conditions
+
+    return filter_query
+
+
+
+def proficient_technologies_or_query(params,filter_query):
+    if params.get('proficient_technologies_or'):
+        proficient_technologies_or = split_and_strip(params, 'proficient_technologies_or')
+        if proficient_technologies_or:
+            proficient_technologies_condition = []
+            for proficient_technology in proficient_technologies_or:
+                proficient_technologies_condition.append({
+                    "$or": [
+                       
+                        {"parsed_data.skills.technologies.proficient": {"$in": [proficient_technology]}},
+                        {"parsed_data.skills.languages.proficient": {"$in": [proficient_technology]}},
+                        {"parsed_data.skills.frameworks.proficient": {"$in": [proficient_technology]}},
+                    ]
+                })
+            if proficient_technologies_condition:
+                if "$or" in filter_query:
+                    filter_query["$or"].extend(proficient_technologies_condition)
+                else:
+                    filter_query["$or"] = proficient_technologies_condition
+
+    return filter_query
             
+def one_hour_filter(params, filter_query):
+    time_threshold = timezone.now() - timedelta(hours=1)
+    resumes = Resume.objects.filter(modified_at__gte=time_threshold) 
+    parsed_data_ids = [resume.parsed_data_id for resume in resumes]
+    filter_query["_id"] = {"$in": [ObjectId(id) for id in parsed_data_ids]}
+
+def six_hour_filter(params, filter_query):
+    time_threshold = timezone.now() - timedelta(hours=6)
+    resumes = Resume.objects.filter(modified_at__gte=time_threshold)
+    parsed_data_ids = [resume.parsed_data_id for resume in resumes]
+    filter_query["_id"] = {"$in": [ObjectId(id) for id in parsed_data_ids]}
+
+def twelve_hour_filter(params, filter_query):
+    time_threshold = timezone.now() - timedelta(hours=12)
+    resumes = Resume.objects.filter(modified_at__gte=time_threshold)
+    parsed_data_ids = [resume.parsed_data_id for resume in resumes]
+    filter_query["_id"] = {"$in": [ObjectId(id) for id in parsed_data_ids]}
+
+def one_day_filter(params, filter_query):
+    time_threshold = timezone.now() - timedelta(days=1)
+    resumes = Resume.objects.filter(modified_at__gte=time_threshold)
+    parsed_data_ids = [resume.parsed_data_id for resume in resumes]
+    filter_query["_id"] = {"$in": [ObjectId(id) for id in parsed_data_ids]}
+
+def seven_day_filter(params, filter_query):
+    time_threshold = timezone.now() - timedelta(days=7)
+    resumes = Resume.objects.filter(modified_at__gte=time_threshold)
+    parsed_data_ids = [resume.parsed_data_id for resume in resumes]
+    filter_query["_id"] = {"$in": [ObjectId(id) for id in parsed_data_ids]}
+
 
 
 def split_and_strip(params, key):
