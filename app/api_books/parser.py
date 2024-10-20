@@ -88,6 +88,7 @@ def extract_info_from_resume(resume_text):
                 "has_the_company_raised_capital_in_the_last_5_years?": "<string:[Yes,No]>",
                 "is_startup": <bool:[true,false]>
             },
+            "candidate_company_summary" : "<string : Write the summary of the work done by the candidate in the respective company>",
             "positions_held_within_the_company": [
                 {
                     "position_name": "<string: position name>",
@@ -120,7 +121,7 @@ def extract_info_from_resume(resume_text):
     },
     "achievements_awards": {
         "summary_of_achievements_awards": [
-            "Write each of the achievements of the candidate"
+            "Write each of the achievements of the candidate it can be some great projects, some award, some coding platform rank etc."
         ],
         "position_blurbs": [
             "Write each position blurb of the candidate"

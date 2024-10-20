@@ -21,6 +21,7 @@ import json
 from .query_helper import *
 from .csv_helper import *
 from pymongo import ReturnDocument
+from .helper import decorate_csv
 
 
 nltk.download('stopwords')
@@ -149,31 +150,31 @@ class ResumeController:
         resume.delete_file()
         return {"message": StatusMessages.SUCCESS, "data": parsed_data}
     
-    @staticmethod
-    def extract_query_params(request):
-        return {
-            "skills_experience": request.query_params.get('skills_experience',None),
-            "skills_and": request.query_params.get('skills_and',None),
-            "proficient_technologies_and": request.query_params.get('proficient_technologies_and',None),
-            "full_time_experience": request.query_params.get('full_time_experience', None),
-            "company_type": request.query_params.get('company_type', None),
-            "product_company_experience": request.query_params.get('product_company_experience', None),
-            "startup_experience": request.query_params.get('startup_experience', None),
-            "degree_type": request.query_params.get('degree_type', None),
-            "last_position_held": request.query_params.get('last_position_held', None),
-            "gen_ai_experience": request.query_params.get('gen_ai_experience', None),
-            "is_cs_degree": request.query_params.get('is_cs_degree', None),
-            "is_ml_degree": request.query_params.get('is_ml_degree', None),
-            "early_stage_startup_experience": request.query_params.get('early_stage_startup_experience', None),
-            "institute_type": request.query_params.get('institute_type', None),
-            "llm_experience": request.query_params.get('llm_experience', None),
-            "service_company_experience": request.query_params.get('service_company_experience', None),
-            "resume_type": request.query_params.get('resume_type', None),
-            "projects_outside_of_work": request.query_params.get('projects_outside_of_work', None),
-            "time_filter": request.query_params.get('time_filter',None),
-            "skills_or": request.query_params.get('skills_or',None),
-            "proficient_technologies_or" : request.query_params.get('proficient_technologies_or',None)
-        }
+    # @staticmethod
+    # def extract_query_params(request):
+    #     return {
+    #         "skills_experience": request.query_params.get('skills_experience',None),
+    #         "skills_and": request.query_params.get('skills_and',None),
+    #         "proficient_technologies_and": request.query_params.get('proficient_technologies_and',None),
+    #         "full_time_experience": request.query_params.get('full_time_experience', None),
+    #         "company_type": request.query_params.get('company_type', None),
+    #         "product_company_experience": request.query_params.get('product_company_experience', None),
+    #         "startup_experience": request.query_params.get('startup_experience', None),
+    #         "degree_type": request.query_params.get('degree_type', None),
+    #         "last_position_held": request.query_params.get('last_position_held', None),
+    #         "gen_ai_experience": request.query_params.get('gen_ai_experience', None),
+    #         "is_cs_degree": request.query_params.get('is_cs_degree', None),
+    #         "is_ml_degree": request.query_params.get('is_ml_degree', None),
+    #         "early_stage_startup_experience": request.query_params.get('early_stage_startup_experience', None),
+    #         "institute_type": request.query_params.get('institute_type', None),
+    #         "llm_experience": request.query_params.get('llm_experience', None),
+    #         "service_company_experience": request.query_params.get('service_company_experience', None),
+    #         "resume_type": request.query_params.get('resume_type', None),
+    #         "projects_outside_of_work": request.query_params.get('projects_outside_of_work', None),
+    #         "time_filter": request.query_params.get('time_filter',None),
+    #         "skills_or": request.query_params.get('skills_or',None),
+    #         "proficient_technologies_or" : request.query_params.get('proficient_technologies_or',None)
+    #     }
 
     @staticmethod #TODO move to utils/helpers
     def build_filter_query(params):
@@ -212,10 +213,11 @@ class ResumeController:
     def filter_resume(params, request=None):
         try:
             filter_query = ResumeController.build_filter_query(params)
-            print(filter_query)
 
             try:
                 resumes = list(collection.find(filter_query))
+                print(resumes)
+                decorate_csv(resumes)
             except Exception as e:
                 logger.error(f"Database query failed: {e}", exc_info=True)
                 raise ValueError("Database error occurred while querying resumes.")

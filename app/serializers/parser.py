@@ -59,6 +59,7 @@ class CompanyInformationSerializer(serializers.Serializer):
 class ExperienceSerializer(serializers.Serializer):
     company_information = CompanyInformationSerializer(required=False)
     positions_held_within_the_company = serializers.ListField(child=serializers.DictField(), required=False)
+    candidate_company_summary = serializers.CharField(required=False, allow_blank=True,allow_null=True)
 
 
 class EducationSerializer(serializers.Serializer):
