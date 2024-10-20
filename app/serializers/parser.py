@@ -2,6 +2,8 @@ from rest_framework import serializers
 from app.models import Resume
 from django.core.exceptions import ValidationError
 import json
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_serializer_method
 import re
 
 class ResumeSerializer(serializers.ModelSerializer):
@@ -126,13 +128,37 @@ class ParsedResumeSerializer(serializers.Serializer):
 
         return super().validate(fixed_data)
 
-def to_internal_value(self, data):
-    try:
-        fixed_data = self.fix_json(data)
-        return super().to_internal_value(fixed_data)
-    except ValueError as e:
-        logger.error(f"ValueError during data processing: {e}",exc_info=True)
-        raise serializers.ValidationError("Invalid data structure provided.")
-    except Exception as e:
-        logger.error(f"Error during data fixing: {e}",exc_info=True)
-        raise serializers.ValidationError("Unexpected error occurred while processing data.")
+    def to_internal_value(self, data):
+        try:
+            fixed_data = self.fix_json(data)
+            return super().to_internal_value(fixed_data)
+        except ValueError as e:
+            logger.error(f"ValueError during data processing: {e}",exc_info=True)
+            raise serializers.ValidationError("Invalid data structure provided.")
+        except Exception as e:
+            logger.error(f"Error during data fixing: {e}",exc_info=True)
+            raise serializers.ValidationError("Unexpected error occurred while processing data.")
+
+class ResumeFilterSerializer(serializers.Serializer):
+    skills_experience = serializers.CharField(required=False, allow_null=True)
+    skills_and = serializers.CharField(required=False, allow_null=True)
+    proficient_technologies_and = serializers.CharField(required=False, allow_null=True)
+    full_time_experience = serializers.IntegerField(required=False, allow_null=True)
+    company_type = serializers.CharField(required=False, allow_null=True)
+    product_company_experience = serializers.BooleanField(required=False, allow_null=True)
+    startup_experience = serializers.BooleanField(required=False, allow_null=True)
+    degree_type = serializers.CharField(required=False, allow_null=True)
+    last_position_held = serializers.CharField(required=False, allow_null=True)
+    gen_ai_experience = serializers.BooleanField(required=False, allow_null=True)
+    is_cs_degree = serializers.BooleanField(required=False, allow_null=True)
+    is_ml_degree = serializers.BooleanField(required=False, allow_null=True)
+    early_stage_startup_experience = serializers.BooleanField(required=False, allow_null=True)
+    institute_type = serializers.CharField(required=False, allow_null=True)
+    llm_experience = serializers.BooleanField(required=False, allow_null=True)
+    service_company_experience = serializers.BooleanField(required=False, allow_null=True)
+    resume_type = serializers.CharField(required=False, allow_null=True)
+    projects_outside_of_work = serializers.BooleanField(required=False, allow_null=True)
+    time_filter = serializers.CharField(required=False, allow_null=True)
+    skills_or = serializers.CharField(required=False, allow_null=True)
+    proficient_technologies_or = serializers.CharField(required=False, allow_null=True)
+    format_type = serializers.CharField(required=False,allow_null=True)

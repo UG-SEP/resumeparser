@@ -118,3 +118,8 @@ class Resume(models.Model):
             if os.path.isfile(self.file.path):
                 os.remove(self.file.path)
                 logger.info(f"File deleted : {self.file.path}")
+
+    def time_filter_resumes_id(self,time_threshold):
+        resumes = Resume.objects.filter(modified_at__gte=time_threshold) 
+        return [resume.parsed_data_id for resume in resumes]
+

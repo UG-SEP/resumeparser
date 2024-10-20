@@ -22,6 +22,7 @@ from .query_helper import *
 from .csv_helper import *
 from pymongo import ReturnDocument
 
+
 nltk.download('stopwords')
 
 
@@ -198,25 +199,19 @@ class ResumeController:
         proficient_technologies_and_query(params,filter_query)
         skills_or_query(params,filter_query)
         proficient_technologies_or_query(params,filter_query)
-        time_filter = params['time_filter']
-        if time_filter == "one_hour":
-            one_hour_filter(params,filter_query)
-        elif time_filter == "six_hour":
-            six_hour_filter(params,filter_query)
-        elif time_filter == "tweleve_hour":
-            tweleve_hour_filter(params,filter_query)
-        elif time_filter == "one_day":
-            one_day_filter(params,filter_query)
-        elif time_filter == "seven_day":
-            seven_day_filter(params,filter_query)
+        one_hour_filter(params,filter_query)
+        six_hour_filter(params,filter_query)
+        tweleve_hour_filter(params,filter_query)
+        one_day_filter(params,filter_query)
+        seven_day_filter(params,filter_query)
+        one_month_filter(params,filter_query)
         print(filter_query)
         return filter_query
 
     @staticmethod
-    def filter_resume(request):
+    def filter_resume(params, request=None):
         try:
-            query_params = ResumeController.extract_query_params(request)
-            filter_query = ResumeController.build_filter_query(query_params)
+            filter_query = ResumeController.build_filter_query(params)
             print(filter_query)
 
             try:
@@ -231,20 +226,26 @@ class ResumeController:
             for resume in resumes:
                 resume["_id"] = str(resume["_id"])
 
-            paginator = ResumePagination()
-            paginated_resumes = paginator.paginate_queryset(resumes, request)
+            if request and request.query_params.get('format_type') == 'csv':
+                return ResumeController.generate_csv_response(resumes)
 
-            if request.query_params.get('format_type') == 'csv':
-                return ResumeController.generate_csv_response(paginated_resumes)
+            paginated_resumes = None
+            if request:
+                paginator = ResumePagination()
+                paginated_resumes = paginator.paginate_queryset(resumes, request)
 
-            return paginator.get_paginated_response(paginated_resumes)
+            if paginated_resumes is not None:
+                return paginator.get_paginated_response(paginated_resumes)
+            
+            return Response(resumes, status=status.HTTP_200_OK)
 
         except ValueError as e:
             logger.error(f"Error filtering resumes: {str(e)}", exc_info=True)
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
         except Exception as e:
             logger.error(f"Unexpected error in filtering resumes: {str(e)}", exc_info=True)
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @staticmethod
     def generate_csv_response(resumes):

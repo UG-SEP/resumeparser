@@ -1,1 +1,1 @@
-from .parser import ResumeSerializer, ParsedResumeSerializer
+from .parser import ResumeSerializer, ParsedResumeSerializer, ResumeFilterSerializer

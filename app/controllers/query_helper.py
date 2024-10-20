@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from app.models import Resume
 from django.utils import timezone
 from bson import ObjectId
+from dateutil.relativedelta import relativedelta
+
 
 def full_time_experience_query(params,filter_query):
     if params.get('full_time_experience'):
@@ -209,36 +211,45 @@ def proficient_technologies_or_query(params,filter_query):
                     filter_query["$or"] = proficient_technologies_condition
 
     return filter_query
-            
-def one_hour_filter(params, filter_query):
-    time_threshold = timezone.now() - timedelta(hours=1)
-    resumes = Resume.objects.filter(modified_at__gte=time_threshold) 
-    parsed_data_ids = [resume.parsed_data_id for resume in resumes]
+
+def time_filter(filter_query,time_threshold):
+    parsed_data_ids = Resume.time_filter_resumes_id(time_threshold)
     filter_query["_id"] = {"$in": [ObjectId(id) for id in parsed_data_ids]}
+
+def one_hour_filter(params, filter_query):
+    if params.get('time_filter') == "one_hour":
+        time_threshold = timezone.now() - timedelta(hours=1)
+        time_filter(filter_query,time_threshold)
+    
 
 def six_hour_filter(params, filter_query):
-    time_threshold = timezone.now() - timedelta(hours=6)
-    resumes = Resume.objects.filter(modified_at__gte=time_threshold)
-    parsed_data_ids = [resume.parsed_data_id for resume in resumes]
-    filter_query["_id"] = {"$in": [ObjectId(id) for id in parsed_data_ids]}
+    if params.get('time_filter') == "six_hour":
+        time_threshold = timezone.now() - timedelta(hours=6)
+        time_filter(filter_query,time_threshold)
 
-def twelve_hour_filter(params, filter_query):
-    time_threshold = timezone.now() - timedelta(hours=12)
-    resumes = Resume.objects.filter(modified_at__gte=time_threshold)
-    parsed_data_ids = [resume.parsed_data_id for resume in resumes]
-    filter_query["_id"] = {"$in": [ObjectId(id) for id in parsed_data_ids]}
+
+def tweleve_hour_filter(params, filter_query):
+    if params.get('time_filter') == "tweleve_hour":
+        time_threshold = timezone.now() - timedelta(hours=12)
+        time_filter(filter_query,time_threshold)
+
 
 def one_day_filter(params, filter_query):
-    time_threshold = timezone.now() - timedelta(days=1)
-    resumes = Resume.objects.filter(modified_at__gte=time_threshold)
-    parsed_data_ids = [resume.parsed_data_id for resume in resumes]
-    filter_query["_id"] = {"$in": [ObjectId(id) for id in parsed_data_ids]}
+    if params.get('time_filter') == "one_day":
+        time_threshold = timezone.now() - timedelta(days=1)
+        time_filter(filter_query,time_threshold)
+
 
 def seven_day_filter(params, filter_query):
-    time_threshold = timezone.now() - timedelta(days=7)
-    resumes = Resume.objects.filter(modified_at__gte=time_threshold)
-    parsed_data_ids = [resume.parsed_data_id for resume in resumes]
-    filter_query["_id"] = {"$in": [ObjectId(id) for id in parsed_data_ids]}
+    if params.get("time_filter") == "seven_day":
+        time_threshold = timezone.now() - timedelta(days=7)
+        time_filter(filter_query,time_threshold)
+
+
+def one_month_filter(params, filter_query):
+    if params.get("time_filter") == "one_month":
+        time_threshold = timezone.now() - relativedelta(months=1)
+        time_filter(filter_query,time_threshold)
 
 
 
