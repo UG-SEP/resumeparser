@@ -104,18 +104,28 @@ class ResumeController:
     def extract_linkedin_and_github(urls):
         linkedin_url = None
         github_url = None
+        mailto_url = None
 
         linkedin_pattern = r"(https?:\/\/)?(www\.)?linkedin\.com\/in\/[a-zA-Z0-9\-]+\/?"
-        github_pattern = r"(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9\-]+\/?"
+        github_pattern = r"(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9\-]+\/?$"
+        mailto_pattern = r"mailto:([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)"
+
 
         for url in urls:
             if re.search(linkedin_pattern, url):
                 linkedin_url = url
             if re.search(github_pattern, url):
                 github_url = url
+            mailto_match = re.search(mailto_pattern, url)
+            if mailto_match:
+                mailto_url = mailto_match.group(1)
 
-        return linkedin_url, github_url
+        return linkedin_url, github_url, mailto_url
 
+    @staticmethod 
+    def validate_email(email):
+        email_validation_pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+        return re.match(email_validation_pattern, email) is not None
     @staticmethod
     def process_resume(resume_id):
         try:
@@ -155,7 +165,7 @@ class ResumeController:
             email = ResumeController.extract_email(resume_text)
             mobile = ResumeController.extract_mobile(resume_text)
             urls = ResumeController.extract_urls_from_pdf(file_location)
-            linkedin_url, github_url = ResumeController.extract_linkedin_and_github(urls)
+            linkedin_url, github_url, mailto_url = ResumeController.extract_linkedin_and_github(urls)
 
             if linkedin_url is not None:
                 parsed_data['personal_information']['linkedin'] = linkedin_url
@@ -167,10 +177,13 @@ class ResumeController:
                 parsed_data['personal_information']['email'] = email
                 parsed_data['personal_information']['mobile'] = mobile
             
-            else:
-                return {"message": StatusMessages.FAILURE_PARSE_DATA}
+            elif mailto_url is not None:
+                parsed_data['personal_information']['email'] = mailto_url
+            
+            if ResumeController.validate_email(parsed_data['personal_information']['email']) == None:
+                return {"message": StatusMessages.EMAIL_NOT_FOUND}
 
-            if email:
+            if parsed_data['personal_information']['email']:
                 existing_document = collection.find_one({"parsed_data.personal_information.email": email})
                 
                 if existing_document:

@@ -1,7 +1,7 @@
 import json
 
 def personal_info_headers(headers):
-    headers += ['Name', 'Email', 'Mobile', 'City', 'Country', 'Title']
+    headers += ['Name', 'Email', 'Mobile','Github','LinkedIn', 'City', 'Country', 'Title']
 
 def skills_headers(headers):
     headers += [f'Language{i+1}' for i in range(5)]
@@ -48,6 +48,8 @@ def personal_info_data(parsed_data,row):
         personal_info.get('name', ''),
         personal_info.get('email', ''),
         personal_info.get('mobile', ''),
+        personal_info.get('github', ''),
+        personal_info.get('linkedin', ''),
         personal_info.get('city', ''),
         personal_info.get('country', ''),
         parsed_data.get('title', '')
