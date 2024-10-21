@@ -83,46 +83,24 @@ class ResumeController:
     def extract_resume_category(data):
         return data.get("resume_type", None)
 
-    # @staticmethod
-    # def extract_linkedin(resume_text):
-    #     linkedin_pattern = r"https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9\-\_\/]+"
-    #     linkedin_match = re.search(linkedin_pattern, resume_text)
-        
-    #     if linkedin_match:
-    #         return linkedin_match.group(0)
-    #     return None
-    
-    # @staticmethod
-    # def extract_github(resume_text):
-    #     github_pattern = r"https?:\/\/(www\.)?github\.com\/[a-zA-Z0-9\-\_]+"
-    #     github_match = re.search(github_pattern, resume_text)
-        
-    #     if github_match:
-    #         return github_match.group(0)
-    #     return None
-
     @staticmethod
     def extract_linkedin(resume_text):
-    # Parse the text with BeautifulSoup
-        soup = BeautifulSoup(resume_text, 'html.parser')
+        linkedin_pattern = r"(https?:\/\/)?(www\.)?linkedin\.com\/in\/[a-zA-Z0-9\-]+\/?"
+        linkedin_match = re.search(linkedin_pattern, resume_text)
         
-        # Find all links in the document
-        for link in soup.find_all('a', href=True):
-            if 'linkedin.com/in/' in link['href']:
-                return link['href']
+        if linkedin_match:
+            return linkedin_match.group(0)
         return None
 
-# Function to extract GitHub URL using BeautifulSoup
     @staticmethod
     def extract_github(resume_text):
-        # Parse the text with BeautifulSoup
-        soup = BeautifulSoup(resume_text, 'html.parser')
+        github_pattern = r"(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9\-]+\/?"
+        github_match = re.search(github_pattern, resume_text)
         
-        # Find all links in the document
-        for link in soup.find_all('a', href=True):
-            if 'github.com/' in link['href']:
-                return link['href']
+        if github_match:
+            return github_match.group(0)
         return None
+
     @staticmethod
     def process_resume(resume_id):
         try:
