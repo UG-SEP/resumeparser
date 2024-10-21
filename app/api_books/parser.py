@@ -14,8 +14,8 @@ def extract_info_from_resume(resume_text):
         "mobile": "<string: mobile no. of the candidate>",
         "city": "<string: city where the candidate live in>",
         "country": "<string: country where the candidate live in>",
-        "linkedin": "<string: linkedin profile username or link>",
-        "github": "<string: github profile username or link>"
+        "linkedin": "<linkedin URL or None>",
+        "github": "<github URL or None>"
     },
     "resume_type": "<string: type of resume options:[backend_engineer,frontend_engineer,full_stack_engineer,devops_engineer,qa_engineer,test_engineer,ai_engineer,machine_learning_engineer,data_scientist,tech_lead,director,engineering_manager,ml_research_engineer,ml_ops_engineer,computer_vision_engineer,natural_language_processing_(NLP)_engineer,reinforcement_learning_engineer]>",
     "title": "<string: give appropriate descriptive title to the candidate according to his/her profile",

@@ -7,7 +7,9 @@ def skills_headers(headers):
     headers += [f'Language{i+1}' for i in range(5)]
     headers += [f'Framework{i+1}' for i in range(5)]
     headers += [f'Technology{i+1}' for i in range(5)]
-    headers += ['LLM Experience', 'Gen AI Experience'] + [f'Skill_Experience_{i+1}' for i in range(5)]
+    headers += ['LLM Experience', 'Gen AI Experience']
+    for i in range(5):
+        headers += [f'Skill_Experience_{i+1}', f'Skill_Experience_Years_{i+1}']
 
 def education_headers(headers):
     for i in range(5):
@@ -51,7 +53,7 @@ def personal_info_data(parsed_data,row):
         parsed_data.get('title', '')
     ]
 
-def skills_data(parsed_data,row):
+def skills_data(parsed_data, row):
     for skill_type in ['languages', 'frameworks', 'technologies']:
         skills = parsed_data.get('skills', {}).get(skill_type, {})
         proficient = skills.get('proficient', [])
@@ -59,11 +61,20 @@ def skills_data(parsed_data,row):
         combined = proficient[:5] + average[:5 - len(proficient)] 
         row += combined + [''] * (5 - len(combined))  
 
+    row += [
+        parsed_data.get('skills', {}).get('llm_experience', False),
+        parsed_data.get('skills', {}).get('gen_ai_experience', False)
+    ]
+
     total_skill_experience = parsed_data.get('skills', {}).get('total_skill_experience', {})
-    top_5_skills = list(total_skill_experience.items())[:5]  
-    row += [parsed_data.get('skills', {}).get('llm_experience', False),
-            parsed_data.get('skills', {}).get('gen_ai_experience', False)]
-    row += [f'{skill}: {exp}' for skill, exp in top_5_skills] + [''] * (5 - len(top_5_skills))  
+    
+    top_5_skills = list(total_skill_experience.items())[:5]
+
+    for skill, exp in top_5_skills:
+        row += [skill, exp]  
+    row += [''] * (5 - len(top_5_skills)) * 2 
+
+
 
 
 def educations_data(parsed_data,row):

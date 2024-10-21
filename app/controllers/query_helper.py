@@ -4,7 +4,8 @@ from app.models import Resume
 from django.utils import timezone
 from bson import ObjectId
 from dateutil.relativedelta import relativedelta
-
+from app.constants import TimeFilter
+from resumeparser.settings import logger
 
 def full_time_experience_query(params,filter_query):
     if params.get('full_time_experience'):
@@ -212,42 +213,54 @@ def proficient_technologies_or_query(params,filter_query):
 
     return filter_query
 
-def time_filter(filter_query,time_threshold):
+def time_filter(filter_query, time_threshold):
     parsed_data_ids = Resume.time_filter_resumes_id(time_threshold)
-    filter_query["_id"] = {"$in": [ObjectId(id) for id in parsed_data_ids]}
+    
+    valid_object_ids = []
+    
+    for id in parsed_data_ids:
+        try:
+            if ObjectId.is_valid(id):
+                valid_object_ids.append(ObjectId(id))
+            else:
+                logger.info(f"Invalid ObjectId: {id} - Skipping")
+        except errors.InvalidId:
+            logger.error(f"Error with ObjectId: {id} - Skipping",exc_info=True)
+    
+    filter_query["_id"] = {"$in": valid_object_ids}
 
 def one_hour_filter(params, filter_query):
-    if params.get('time_filter') == "one_hour":
+    if params.get('time_filter') == TimeFilter.ONE_HOUR:
         time_threshold = timezone.now() - timedelta(hours=1)
         time_filter(filter_query,time_threshold)
     
 
 def six_hour_filter(params, filter_query):
-    if params.get('time_filter') == "six_hour":
+    if params.get('time_filter') == TimeFilter.SIX_HOUR:
         time_threshold = timezone.now() - timedelta(hours=6)
         time_filter(filter_query,time_threshold)
 
 
 def tweleve_hour_filter(params, filter_query):
-    if params.get('time_filter') == "tweleve_hour":
+    if params.get('time_filter') == TimeFilter.TWELEVE_HOUR:
         time_threshold = timezone.now() - timedelta(hours=12)
         time_filter(filter_query,time_threshold)
 
 
 def one_day_filter(params, filter_query):
-    if params.get('time_filter') == "one_day":
+    if params.get('time_filter') == TimeFilter.ONE_DAY:
         time_threshold = timezone.now() - timedelta(days=1)
         time_filter(filter_query,time_threshold)
 
 
 def seven_day_filter(params, filter_query):
-    if params.get("time_filter") == "seven_day":
+    if params.get("time_filter") == TimeFilter.SEVEN_DAY:
         time_threshold = timezone.now() - timedelta(days=7)
         time_filter(filter_query,time_threshold)
 
 
 def one_month_filter(params, filter_query):
-    if params.get("time_filter") == "one_month":
+    if params.get("time_filter") == TimeFilter.ONE_MONTH:
         time_threshold = timezone.now() - relativedelta(months=1)
         time_filter(filter_query,time_threshold)
 

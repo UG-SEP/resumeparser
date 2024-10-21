@@ -22,6 +22,7 @@ from .query_helper import *
 from .csv_helper import *
 from pymongo import ReturnDocument
 from .helper import decorate_csv
+import fitz
 
 
 nltk.download('stopwords')
@@ -52,13 +53,24 @@ class ResumeController:
             logger.error(f"An error occurred while reading the PDF: {e}", exc_info=True)
             raise ResumeTextExtractionError(f"An unexpected error occurred while reading the PDF: {e}")
 
-    @staticmethod
-    def remove_html_tags(text):
-        return BeautifulSoup(text, "html.parser").get_text()
+    # @staticmethod
+    # def remove_html_tags(text):
+    #     return BeautifulSoup(text, "html.parser").get_text()
+
+    # @staticmethod
+    # def remove_punctuation(text):
+    #     return text.translate(str.maketrans('', '', string.punctuation))
 
     @staticmethod
-    def remove_punctuation(text):
-        return text.translate(str.maketrans('', '', string.punctuation))
+    def extract_email(resume_text):
+        email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+        email_match = re.findall(email_pattern, resume_text)
+        return email_match[0] if email_match else None
+    @staticmethod
+    def extract_mobile(resume_text):
+        mobile_pattern =  r'\+?\d{1,3}[-.\s]?\d{1,5}[-.\s]?\d{3,5}[-.\s]?\d{3,5}'
+        mobile_match = re.findall(mobile_pattern, resume_text)
+        return mobile_match[0] if mobile_match else None
 
     @staticmethod
     def remove_stop_words(text):
@@ -71,6 +83,46 @@ class ResumeController:
     def extract_resume_category(data):
         return data.get("resume_type", None)
 
+    # @staticmethod
+    # def extract_linkedin(resume_text):
+    #     linkedin_pattern = r"https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9\-\_\/]+"
+    #     linkedin_match = re.search(linkedin_pattern, resume_text)
+        
+    #     if linkedin_match:
+    #         return linkedin_match.group(0)
+    #     return None
+    
+    # @staticmethod
+    # def extract_github(resume_text):
+    #     github_pattern = r"https?:\/\/(www\.)?github\.com\/[a-zA-Z0-9\-\_]+"
+    #     github_match = re.search(github_pattern, resume_text)
+        
+    #     if github_match:
+    #         return github_match.group(0)
+    #     return None
+
+    @staticmethod
+    def extract_linkedin(resume_text):
+    # Parse the text with BeautifulSoup
+        soup = BeautifulSoup(resume_text, 'html.parser')
+        
+        # Find all links in the document
+        for link in soup.find_all('a', href=True):
+            if 'linkedin.com/in/' in link['href']:
+                return link['href']
+        return None
+
+# Function to extract GitHub URL using BeautifulSoup
+    @staticmethod
+    def extract_github(resume_text):
+        # Parse the text with BeautifulSoup
+        soup = BeautifulSoup(resume_text, 'html.parser')
+        
+        # Find all links in the document
+        for link in soup.find_all('a', href=True):
+            if 'github.com/' in link['href']:
+                return link['href']
+        return None
     @staticmethod
     def process_resume(resume_id):
         try:
@@ -84,10 +136,7 @@ class ResumeController:
             file_location = resume.get_file_location()
             resume_text =  ResumeController.extract_text_from_pdf(file_location)
             logger.info(f"Extracted text from the resume: {resume_text}")
-            # sleep(5)
             resume_text = resume_text.lower()  
-            resume_text = ResumeController.remove_html_tags(resume_text) 
-            resume_text = ResumeController.remove_punctuation(resume_text) 
             resume_text = ResumeController.remove_stop_words(resume_text)
 
             if resume_text is None:
@@ -110,14 +159,24 @@ class ResumeController:
 
 
         try:
-            email_to_check = parsed_data.get('personal_information', {}).get('email')
+            email = ResumeController.extract_email(resume_text)
+            mobile = ResumeController.extract_mobile(resume_text)
+            parsed_data['personal_information']['linkedin'] = ResumeController.extract_linkedin(resume_text)
+            parsed_data['personal_information']['github'] = ResumeController.extract_github(resume_text)
 
-            if email_to_check:
-                existing_document = collection.find_one({"parsed_data.personal_information.email": email_to_check})
+            if email is not None and mobile is not None:
+                parsed_data['personal_information']['email'] = email
+                parsed_data['personal_information']['mobile'] = mobile
+            
+            else:
+                return {"message": StatusMessages.FAILURE_PARSE_DATA}
+
+            if email:
+                existing_document = collection.find_one({"parsed_data.personal_information.email": email})
                 
                 if existing_document:
                     mongo_doc_id = collection.find_one_and_update(
-                        {"parsed_data.personal_information.email": email_to_check},  
+                        {"parsed_data.personal_information.email": email},  
                         {"$set": {'parsed_data': parsed_data}}, 
                         return_document=ReturnDocument.AFTER
                     ).get('_id')

@@ -3,3 +3,11 @@ class StatusMessages:
     FAILURE_EXTRACT_TEXT = "Failed to extract text from the PDF."
     FAILURE_PARSE_DATA = "Failed to parse resume data."
     FAILURE_SAVE_DATA = "Failed to save resume data."
+
+class TimeFilter:
+    ONE_HOUR = "one_hour"
+    SIX_HOUR = "six_hour"
+    TWELEVE_HOUR = "tweleve_hour"
+    ONE_DAY = "one_day"
+    SEVEN_DAY = "seven_day"
+    ONE_MONTH = "one_month"
