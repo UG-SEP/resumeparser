@@ -22,7 +22,10 @@ def process_resume_task(self, resume_id):
         result = ResumeController.process_resume(resume_id)
 
         if result.get('message') != StatusMessages.SUCCESS:
-            logger.info(f'Resume processing failed for: {resume_id}', exc_info=True)
+            logger.error(f'Resume processing failed for: {resume_id}', exc_info=True)
+            logger.info(result.get('message'))
+            # import pdb
+            # pdb.set_trace()
             raise ResumeProcessingError(f'Resume processing failed for {resume_id}')
         
         logger.info(f'Resume processed successfully: {resume_id}')

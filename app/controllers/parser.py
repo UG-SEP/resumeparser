@@ -33,7 +33,6 @@ class ResumeController:
     @staticmethod
     def extract_text_from_pdf(pdf_path):
         try:
-            # import pdb; pdb.set_trace()
             text = ""
             with pdfplumber.open(pdf_path) as pdf:
                 for page_number, page in enumerate(pdf.pages):
@@ -84,22 +83,38 @@ class ResumeController:
         return data.get("resume_type", None)
 
     @staticmethod
-    def extract_linkedin(resume_text):
-        linkedin_pattern = r"(https?:\/\/)?(www\.)?linkedin\.com\/in\/[a-zA-Z0-9\-]+\/?"
-        linkedin_match = re.search(linkedin_pattern, resume_text)
-        
-        if linkedin_match:
-            return linkedin_match.group(0)
-        return None
+    def extract_urls_from_pdf(pdf_path):
+        try:
+            doc = fitz.open(pdf_path)
+            urls = []
+            for page_num in range(len(doc)):
+                page = doc.load_page(page_num)
+                links = page.get_links()
+                
+                for link in links:
+                    uri = link.get('uri')
+                    if uri:
+                        urls.append(uri)
+            return urls
+        except Exception as e:
+            logger.error(f"An error occurred while extracting URLs from the PDF: {e}")
+            raise ResumeTextExtractionError(f"Failed to extract URLs from the PDF: {e}")
 
     @staticmethod
-    def extract_github(resume_text):
+    def extract_linkedin_and_github(urls):
+        linkedin_url = None
+        github_url = None
+
+        linkedin_pattern = r"(https?:\/\/)?(www\.)?linkedin\.com\/in\/[a-zA-Z0-9\-]+\/?"
         github_pattern = r"(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9\-]+\/?"
-        github_match = re.search(github_pattern, resume_text)
-        
-        if github_match:
-            return github_match.group(0)
-        return None
+
+        for url in urls:
+            if re.search(linkedin_pattern, url):
+                linkedin_url = url
+            if re.search(github_pattern, url):
+                github_url = url
+
+        return linkedin_url, github_url
 
     @staticmethod
     def process_resume(resume_id):
@@ -139,8 +154,14 @@ class ResumeController:
         try:
             email = ResumeController.extract_email(resume_text)
             mobile = ResumeController.extract_mobile(resume_text)
-            parsed_data['personal_information']['linkedin'] = ResumeController.extract_linkedin(resume_text)
-            parsed_data['personal_information']['github'] = ResumeController.extract_github(resume_text)
+            urls = ResumeController.extract_urls_from_pdf(file_location)
+            linkedin_url, github_url = ResumeController.extract_linkedin_and_github(urls)
+
+            if linkedin_url is not None:
+                parsed_data['personal_information']['linkedin'] = linkedin_url
+
+            if github_url is not None:
+                parsed_data['personal_information']['github'] = github_url
 
             if email is not None and mobile is not None:
                 parsed_data['personal_information']['email'] = email
