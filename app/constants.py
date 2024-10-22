@@ -4,6 +4,7 @@ class StatusMessages:
     FAILURE_PARSE_DATA = "Failed to parse resume data."
     FAILURE_SAVE_DATA = "Failed to save resume data."
     EMAIL_NOT_FOUND = "Email not found in the resume"
+    MOBILE_NOT_FOUND = "Mobile no. not found "
 
 class TimeFilter:
     ONE_HOUR = "one_hour"

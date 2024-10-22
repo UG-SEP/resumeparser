@@ -65,11 +65,13 @@ class ResumeController:
         email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
         email_match = re.findall(email_pattern, resume_text)
         return email_match[0] if email_match else None
+
     @staticmethod
     def extract_mobile(resume_text):
-        mobile_pattern =  r'\+?\d{1,3}[-.\s]?\d{1,5}[-.\s]?\d{3,5}[-.\s]?\d{3,5}'
-        mobile_match = re.findall(mobile_pattern, resume_text)
-        return mobile_match[0] if mobile_match else None
+        mobile_pattern = r'(\+91[-.\s]?)?([6-9]\d{9})\b'
+        mobile_match = re.search(mobile_pattern, resume_text)
+        
+        return mobile_match.group(0) if mobile_match else None
 
     @staticmethod
     def remove_stop_words(text):
@@ -126,6 +128,39 @@ class ResumeController:
     def validate_email(email):
         email_validation_pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
         return re.match(email_validation_pattern, email) is not None
+
+    @staticmethod
+    def fix_mobile_number(mobile):
+        correct_mobile_no = ""
+        
+        if "+91" in mobile:
+            correct_mobile_no += "+91 "
+            mobile = mobile.replace("+91", "")
+
+        digits = re.findall(r'\d', mobile)  
+
+        if len(digits) < 10:
+            return None 
+
+        if digits[0] not in ['6', '7', '8', '9']:
+            return None 
+        
+        correct_mobile_no += ''.join(digits[:10]) 
+        
+        return correct_mobile_no
+
+    @staticmethod
+    def validate_mobile(mobile):
+        if mobile.startswith("+91"):
+            mobile = mobile[3:]
+
+        digits = re.findall(r'\d', mobile)
+
+        if len(digits) == 10:
+            return True  
+        else:
+            return False 
+
     @staticmethod
     def process_resume(resume_id):
         try:
@@ -173,15 +208,22 @@ class ResumeController:
             if github_url is not None:
                 parsed_data['personal_information']['github'] = github_url
 
-            if email is not None and mobile is not None:
+            if email is not None:
                 parsed_data['personal_information']['email'] = email
+
+            if mobile is not None:
                 parsed_data['personal_information']['mobile'] = mobile
+            else:
+                parsed_data['personal_information']['mobile'] = ResumeController.fix_mobile_number(parsed_data['personal_information']['mobile'])
             
-            elif mailto_url is not None:
+            if mailto_url is not None:
                 parsed_data['personal_information']['email'] = mailto_url
             
-            if ResumeController.validate_email(parsed_data['personal_information']['email']) == None:
+            if ResumeController.validate_email(parsed_data['personal_information']['email']) is None:
                 return {"message": StatusMessages.EMAIL_NOT_FOUND}
+            
+            if ResumeController.validate_mobile(parsed_data['personal_information']['mobile']) is None:
+                return {"message": StatusMessages.MOBILE_NOT_FOUND}
 
             if parsed_data['personal_information']['email']:
                 existing_document = collection.find_one({"parsed_data.personal_information.email": email})
