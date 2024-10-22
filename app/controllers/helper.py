@@ -20,6 +20,8 @@ def decorate_csv(resumes):
         
     
 def convert_to_years_months(value: float) -> str:
+    if value is None:
+        value = 0
     years = int(value)
     months = round((value - years) * 12)
 
