@@ -23,6 +23,7 @@ from .csv_helper import *
 from pymongo import ReturnDocument
 from .helper import decorate_csv
 import fitz
+import PyPDF2
 
 
 nltk.download('stopwords')
@@ -39,18 +40,44 @@ class ResumeController:
                     page_text = page.extract_text()
 
                     time.sleep(1)
+
                     if not page_text:
-                        # Log and handle empty page cases
                         logger.error(f"Page {page_number + 1} returned empty text.")
                     else:
                         text += page_text + "\n"
+
+            if not text.strip():
+                logger.error("No text extracted from the PDF. Attempting fallback extraction with PyPDF2.")
+                text = ResumeController.fallback_extract_text_with_pypdf2(pdf_path)
+
             return text.strip()
+
         except FileNotFoundError:
             logger.error(f"The file {pdf_path} was not found.", exc_info=True)
             raise ResumeTextExtractionError(f"The file {pdf_path} was not found.")
         except Exception as e:
             logger.error(f"An error occurred while reading the PDF: {e}", exc_info=True)
             raise ResumeTextExtractionError(f"An unexpected error occurred while reading the PDF: {e}")
+
+    @staticmethod
+    def fallback_extract_text_with_pypdf2(pdf_path):
+        try:
+            text = ""
+            with open(pdf_path, 'rb') as file:
+                reader = PyPDF2.PdfReader(file)
+
+                for page_number, page in enumerate(reader.pages):
+                    page_text = page.extract_text()
+
+                    if page_text:
+                        text += page_text + "\n"
+                    else:
+                        logger.error(f"Fallback: Page {page_number + 1} returned empty text using PyPDF2.")
+
+            return text.strip()  
+        except Exception as e:
+            logger.error(f"Fallback extraction with PyPDF2 failed: {e}", exc_info=True)
+            return None
 
     # @staticmethod
     # def remove_html_tags(text):
