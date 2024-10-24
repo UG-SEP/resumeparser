@@ -37,8 +37,8 @@ class SkillSerializer(serializers.Serializer):
     frameworks = ProficiencySerializer(required=False)
     technologies = ProficiencySerializer(required=False)
     total_skill_experience = serializers.DictField(required=False, allow_null=True)
-    llm_experience = serializers.BooleanField(required=False)  
-    gen_ai_experience = serializers.BooleanField(required=False)
+    llm_experience = serializers.CharField(required=False)  
+    gen_ai_experience = serializers.CharField(required=False)
 
 
 class CompanyInformationSerializer(serializers.Serializer):
@@ -52,9 +52,9 @@ class CompanyInformationSerializer(serializers.Serializer):
     company_size_range = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     total_capital_raised = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     company_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    is_faang = serializers.BooleanField(required=False)  
+    is_faang = serializers.CharField(required=False)  
     has_the_company_raised_capital_in_the_last_5_years = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    is_startup = serializers.BooleanField(required=False) 
+    is_startup = serializers.CharField(required=False) 
 
 
 class ExperienceSerializer(serializers.Serializer):
@@ -73,8 +73,8 @@ class EducationSerializer(serializers.Serializer):
     duration_in_years = serializers.IntegerField(required=False, allow_null=True)  
     mode = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     degree_level = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    is_cs_degree = serializers.BooleanField(required=False)  
-    is_ml_degree = serializers.BooleanField(required=False)
+    is_cs_degree = serializers.CharField(required=False)  
+    is_ml_degree = serializers.CharField(required=False)
     institute_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
 
@@ -151,15 +151,15 @@ class ResumeFilterSerializer(serializers.Serializer):
     startup_experience = serializers.FloatField(required=False, allow_null=True,help_text="Startup experience. ex. 3")
     degree_type = serializers.CharField(required=False, allow_null=True,help_text="Type of degree bachelors or masters. Ex. bachelors or masters")
     last_position_held = serializers.CharField(required=False, allow_null=True,help_text="Name of the last position held. Ex. Senior Data Scientist")
-    gen_ai_experience = serializers.BooleanField(required=False, allow_null=True,help_text="Does the candidate have gen ai experience.")
-    is_cs_degree = serializers.BooleanField(required=False, allow_null=True,help_text="Does the candidate have a CS Degree")
-    is_ml_degree = serializers.BooleanField(required=False, allow_null=True,help_text="Does the candidate have a ML Degree")
+    gen_ai_experience = serializers.CharField(required=False, allow_null=True,help_text="Does the candidate have gen ai experience. true or false")
+    is_cs_degree = serializers.CharField(required=False, allow_null=True,help_text="Does the candidate have a CS Degree. true or false")
+    is_ml_degree = serializers.CharField(required=False, allow_null=True,help_text="Does the candidate have a ML Degree. true or false")
     early_stage_startup_experience = serializers.FloatField(required=False, allow_null=True,help_text="Early age startup experience. Ex. 3")
     institute_type = serializers.CharField(required=False, allow_null=True,help_text="Institute from where the candidate passout. Ex. Others or IIT or NIT or IIIT")
-    llm_experience = serializers.BooleanField(required=False, allow_null=True,help_text="Does the candidate have a LLM Experience")
+    llm_experience = serializers.CharField(required=False, allow_null=True,help_text="Does the candidate have a LLM Experience. true or false")
     service_company_experience = serializers.FloatField(required=False, allow_null=True,help_text="No. of years of experience in service based company. ex. 3")
     resume_type = serializers.CharField(required=False, allow_null=True,help_text="Type of resume. Ex. backend_engineer or front_engineer or full_stack_developer or data_scientist")
-    projects_outside_of_work = serializers.BooleanField(required=False, allow_null=True,help_text="Does the candidate have projects outside his job profile")
+    projects_outside_of_work = serializers.CharField(required=False, allow_null=True,help_text="Does the candidate have projects outside his job profile. true or false")
     time_filter = serializers.CharField(required=False, allow_null=True,help_text="Filter resume of a particular time period. Ex. one_hour or six_hour or tweleve_hour or one_day or seven_day or one_month")
     skills_or = serializers.CharField(required=False, allow_null=True,help_text="Search for candidate with particular skills with OR Query. ex. python,django")
     proficient_technologies_or = serializers.CharField(required=False, allow_null=True, help_text="Search for candidate with proficient skills with OR Query. ex. python,django")

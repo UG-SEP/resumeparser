@@ -98,7 +98,7 @@ class ResumeController:
         mobile_pattern = r'(\+91[-.\s]?)?([6-9]\d{9})\b'
         mobile_match = re.search(mobile_pattern, resume_text)
         
-        return mobile_match.group(0) if mobile_match else None
+        return mobile_match.group(2) if mobile_match else None
 
     @staticmethod
     def remove_stop_words(text):
