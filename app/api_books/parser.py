@@ -53,8 +53,8 @@ Extract the following information from the resume and provide it in a JSON forma
             "<string: name of the skill>": <float: no. of years of experience>,
             "Can have multiple skills"
         },
-        "llm_experience": <bool: [true, false]>,
-        "gen_ai_experience": <bool: [true, false]>
+        "llm_experience": <string: [true, false]>,
+        "gen_ai_experience": <string: [true, false]>
     },
     "education": [
         {
@@ -67,8 +67,8 @@ Extract the following information from the resume and provide it in a JSON forma
             "duration_in_years": <int: total no. of years of degree>,
             "mode": "<string: [offline, online]>",
             "degree_level": "<string: [masters, bachelors]>",
-            "is_cs_degree": <bool: [true, false]>,
-            "is_ml_degree": <bool: [true, false]>,
+            "is_cs_degree": <string: [true, false]>,
+            "is_ml_degree": <string: [true, false]>,
             "institute_type": "<string: [other, iit, nit, iiit]>"
         }
     ],
@@ -85,9 +85,9 @@ Extract the following information from the resume and provide it in a JSON forma
                 "company_size_range": "<string: company size range (e.g., 50-100)>",
                 "total_capital_raised": "<string: total capital raised by the company>",
                 "company_type": "<string: [service, product]>",
-                "is_faang": <bool: [true, false]>,
+                "is_faang": <string: [true, false]>,
                 "has_the_company_raised_capital_in_the_last_5_years": "<string: [Yes, No]>",
-                "is_startup": <bool: [true, false]>
+                "is_startup": <string: [true, false]>
             },
             "candidate_company_summary": "<string: Summary of the work done by the candidate at the company>",
             "positions_held_within_the_company": [
@@ -118,7 +118,7 @@ Extract the following information from the resume and provide it in a JSON forma
         "total_early_stage_startup_experience": <float: no. of years of experience in early-stage startups>,
         "product_company_experience": <float: no. of years of experience in product-based companies>,
         "service_company_experience": <float: no. of years of experience in service-based companies>,
-        "gen_ai_experience": <bool: [true, false]>
+        "gen_ai_experience": <string: [true, false]>
     },
     "achievements_awards": {
         "summary_of_achievements_awards": [
