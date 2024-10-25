@@ -1,1 +1,1 @@
-from .parser import resume_upload_view,retrieve_data_view
+from .parser import resume_upload_view,retrieve_data_view,retrieve_resume_category

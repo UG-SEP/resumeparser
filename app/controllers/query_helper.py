@@ -83,12 +83,19 @@ def early_stage_startup_experience_query(params,filter_query):
             "$gte": float(params['early_stage_startup_experience'])
         }
 
-def institute_type_query(params,filter_query):
-    if params.get('institute_type'):
-        filter_query["parsed_data.education.institute_type"] = {
-        "$regex": f"^{re.escape(params['institute_type'])}$",
-        "$options": "i"  
-    }
+def institute_type_query(params, filter_query):
+    institute_type = params.get('institute_type')
+    if institute_type:
+        if institute_type.lower() == "all":
+            filter_query["parsed_data.education.institute_type"] = {
+                "$in": ["iit", "nit", "iiit", "bits"]
+            }
+        else:
+            filter_query["parsed_data.education.institute_type"] = {
+                "$regex": f"^{re.escape(institute_type)}$",
+                "$options": "i"
+            }
+
 
 def llm_experience_query(params,filter_query):
     if params.get('llm_experience'):
@@ -253,18 +260,57 @@ def one_day_filter(params, filter_query):
         time_filter(filter_query,time_threshold)
 
 
-def seven_day_filter(params, filter_query):
-    if params.get("time_filter") == TimeFilter.SEVEN_DAY:
+def one_week_filter(params, filter_query):
+    if params.get("time_filter") == TimeFilter.ONE_WEEK:
         time_threshold = timezone.now() - timedelta(days=7)
         time_filter(filter_query,time_threshold)
 
+def two_week_filter(params, filter_query):
+    if params.get("time_filter") == TimeFilter.TWO_WEEK:
+        time_threshold = timezone.now() - timedelta(days=14)
+        time_filter(filter_query,time_threshold)
+
+def three_week_filter(params, filter_query):
+    if params.get("time_filter") == TimeFilter.THREE_WEEK:
+        time_threshold = timezone.now() - timedelta(days=21)
+        time_filter(filter_query,time_threshold)
+    
+def forty_five_days_filter(params, filter_query):
+    if params.get("time_filter") == TimeFilter.FORTY_FIVE_DAYS:
+        time_threshold = timezone.now() - timedelta(days=45)
+        time_filter(filter_query,time_threshold)
 
 def one_month_filter(params, filter_query):
     if params.get("time_filter") == TimeFilter.ONE_MONTH:
         time_threshold = timezone.now() - relativedelta(months=1)
         time_filter(filter_query,time_threshold)
 
+def two_month_filter(params, filter_query):
+    if params.get("time_filter") == TimeFilter.TWO_MONTH:
+        time_threshold = timezone.now() - relativedelta(months=2)
+        time_filter(filter_query,time_threshold)
 
+def three_month_filter(params, filter_query):
+    if params.get("time_filter") == TimeFilter.THREE_MONTH:
+        time_threshold = timezone.now() - relativedelta(months=3)
+        time_filter(filter_query,time_threshold)
+
+def industry_type_filter(params, filter_query):
+    if params.get('industry_type'):
+        industry_type = params['industry_type']
+        
+        filter_query["parsed_data.experience.company_information.industry_type"] = {
+            "$regex": f"^{re.escape(industry_type)}$",  
+            "$options": "i"
+        }
+
+def company_size_filter(params, filter_query):
+    if params.get('company_size'):
+        company_size = params['company_size']
+        filter_query["parsed_data.experience.company_information.company_size_range"] = {
+            "$regex": f"^{re.escape(company_size)}$",  
+            "$options": "i"
+        }
 
 def split_and_strip(params, key):
         if key in params:

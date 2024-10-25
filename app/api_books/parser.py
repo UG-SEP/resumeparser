@@ -82,12 +82,13 @@ Extract the following information from the resume and provide it in a JSON forma
                 "joining_month_and_year": "<string: joining_month joining_year>",
                 "leaving_month_and_year": "<string: leaving_month leaving_year>",
                 "total_duration_in_years": <float: total years worked in this company>,
-                "company_size_range": "<string: company size range (e.g., 50-100)>",
+                "company_size_range": "<string: [>50,50-200,200-500,500-1000,1000<]>",
                 "total_capital_raised": "<string: total capital raised by the company>",
                 "company_type": "<string: [service, product]>",
                 "is_faang": <string: [true, false]>,
                 "has_the_company_raised_capital_in_the_last_5_years": "<string: [Yes, No]>",
-                "is_startup": <string: [true, false]>
+                "is_startup": <string: [true, false]>,
+                "industry_type": <string: [fintech, healthtech,edtech,proptech,insurtech,greentech,agritech,foodtech,hft,legaltech,marttech,hrtech,retailtech,cybersecurity,autotech,govtech,deeptech]>
             },
             "candidate_company_summary": "<string: Summary of the work done by the candidate at the company>",
             "positions_held_within_the_company": [
@@ -156,18 +157,14 @@ Extract the following information from the resume and provide it in a JSON forma
         response = requests.post(url, headers=headers, data=payload)
 
         if response.status_code == 200:
-            logger.info(f"Response content: {response.text}")
             json_data = response.json()
             response_content = json_data.get('choices', [{}])[0].get('message', {}).get('content', None)
 
             response_content = response_content.replace("```json", "").replace("```", "").strip()
-            logger.info(f"Cleaned Response content: {response_content}")
 
             try:
                 response_dict = json.loads(response_content) 
             except json.JSONDecodeError as e:
-                # import pdb
-                # pdb.set_trace()
                 logger.error(f"JSON decoding error: {e} - Response content: {response_content}")
                 return None
 
@@ -178,8 +175,6 @@ Extract the following information from the resume and provide it in a JSON forma
                 return serializer.data  
             else:
                 logger.error(f"Validation errors: {serializer.errors}",exc_info=True)
-                # import pdb
-                # pdb.set_trace()
                 return None
 
         else:

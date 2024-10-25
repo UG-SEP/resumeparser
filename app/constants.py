@@ -11,5 +11,11 @@ class TimeFilter:
     SIX_HOUR = "six_hour"
     TWELEVE_HOUR = "tweleve_hour"
     ONE_DAY = "one_day"
-    SEVEN_DAY = "seven_day"
+    ONE_WEEK = "one_week"
+    TWO_WEEK = "two_week"
+    THREE_WEEK = "three_week"
     ONE_MONTH = "one_month"
+    TWO_MONTH = "two_month"
+    THREE_MONTH = "three_month"
+    FORTY_FIVE_DAYS = "forty_five_days"
+

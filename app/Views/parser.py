@@ -11,34 +11,9 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import MultiPartParser
+from app.serializers import get_serializer_parameters
 
 
-def get_serializer_parameters(serializer):
-    parameters = []
-    for field_name, field in serializer.get_fields().items():
-        if field.read_only:
-            continue
-        param_type = openapi.TYPE_STRING
-        
-        
-        if isinstance(field, serializers.BooleanField):
-            param_type = openapi.TYPE_BOOLEAN
-        elif isinstance(field, serializers.IntegerField):
-            param_type = openapi.TYPE_INTEGER
-        elif isinstance(field, serializers.FloatField):
-            param_type = openapi.TYPE_NUMBER
-        elif isinstance(field, serializers.FileField):
-            param_type = openapi.TYPE_FILE  
-
-        parameters.append(openapi.Parameter(
-            field_name,
-            openapi.IN_FORM,  
-            description=field.help_text or '', 
-            type=param_type,
-            required=field.required
-        ))
-        
-    return parameters
 
 
 @swagger_auto_schema(
@@ -74,17 +49,9 @@ def resume_upload_view(request):
         
     if not resume_files:
         return Response({"error": "No files uploaded."}, status=status.HTTP_400_BAD_REQUEST)
-        
-    # TODO: Extract the validated_data extract the instance_info and convert it into dict / json and then bulk save 
-    # and pass to the process_resume_task
     serializer = ResumeSerializer()
     created_resumes = serializer.create_bulk(resume_files) 
-    # resume_ids = [str(resume.id) for resume in created_resumes] 
-    #  resumes = Resume.get_all(resume_id)
-    # resume_ids = [resume.id for resume in created_resumes]
     for resume in created_resumes:
-        print(resume)
-        print(type(resume.id))
         process_resume_task.delay(resume.id)
 
     logger.info(f"{len(resume_files)} Resume has been passed to the celery task for background processing: ")
@@ -170,3 +137,18 @@ def retrieve_data_view(request):
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+@api_view(['GET'])
+def retrieve_resume_category(request):
+    try:
+        categories = Resume.objects.values_list('resume_category', flat=True).distinct()
+        categories_list = list(categories)
+        return Response({"resume_categories": categories_list}, status=status.HTTP_200_OK)
+    
+    except Exception as e:
+        return Response(
+            {"error": "An error occurred while retrieving resume categories", "details": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

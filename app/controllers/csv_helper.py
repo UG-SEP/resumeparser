@@ -23,7 +23,7 @@ def experience_headers(headers):
                     f'Joining_Date{i+1}', f'Leaving_Date{i+1}', f'Total_Duration{i+1}',f'Company Size Range{i+1}',
                     f'Total Capital Raised{i+1}',f'Company Type{i+1}',f'Is Faang{i+1}',
                         f'has_the_company_raised_capital_in_the_last_5_years{i+1}',
-                        f'Is Startup{i+1}']
+                        f'Is Startup{i+1}',f'Industry Type{i+1}']
 
 def project_headers(headers):
     for i in range(5):
@@ -116,7 +116,8 @@ def experience_data(parsed_data,row):
             company_info.get('company_type'),
             company_info.get('is_faang'),
             company_info.get('has_the_company_raised_capital_in_the_last_5_years?'),
-            company_info.get('is_startup')
+            company_info.get('is_startup'),
+            company_info.get('industry_type')
         ]
 
 def project_data(parsed_data,row):
