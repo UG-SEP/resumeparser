@@ -17,15 +17,13 @@ class ResumeSerializer(serializers.ModelSerializer):
         read_only_fields = (
             'id', 'parsing_status', 'no_of_retries', 
             'parsed_data_id', 'created_at', 'modified_at',
-            'storage_path', 'resume_category'
+            'storage_path', 'resume_category',
         )
 
-    def create(self, validated_data):
-        return Resume.objects.create(**validated_data)
-
-    def create_bulk(self, files):
-        resume_objects = [Resume(file=file) for file in files]
-        return Resume.bulk_create_resume(resume_objects)
+    def create_bulk(self, s3_urls):
+        resume_objects = [Resume(s3_file_location=url, parsing_status="in_progress") for url in s3_urls]
+        created_resumes = Resume.objects.bulk_create(resume_objects)
+        return created_resumes
     
 
 class ProficiencySerializer(serializers.Serializer):

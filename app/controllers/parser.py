@@ -189,7 +189,6 @@ class ResumeController:
             if not resume.id:
                 raise ResumeProcessingError(f"Resume {resume_id} does not exist.")
 
-            resume.set_file_location()
             file_location = resume.get_file_location()
             resume_text =  ResumeController.extract_text_from_pdf(file_location)
             logger.info(f"Extracted text from the resume")
@@ -212,6 +211,7 @@ class ResumeController:
 
 
         try:
+            parsed_data['s3_file_url'] = resume.s3_file_location
             email = ResumeController.extract_email(resume_text)
             mobile = ResumeController.extract_mobile(resume_text)
             urls = ResumeController.extract_urls_from_pdf(file_location)

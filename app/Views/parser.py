@@ -10,56 +10,64 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import JSONParser
 from app.serializers import get_serializer_parameters
-
-
 
 
 @swagger_auto_schema(
     method='post',
-    manual_parameters=get_serializer_parameters(ResumeSerializer()), 
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'file': openapi.Schema(
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_STRING, format=openapi.FORMAT_URI),
+                description="List of S3 URLs to resume files"
+            )
+        },
+        required=['file'],
+    ),
     responses={
         201: openapi.Response(
-            description='Successful response',
+            description="Successful response",
             schema=openapi.Schema(
                 type=openapi.TYPE_OBJECT,
                 properties={
-                    'message': openapi.Schema(type=openapi.TYPE_STRING, example="3 resumes uploaded and processing started."),
+                    "message": openapi.Schema(type=openapi.TYPE_STRING, example="3 resumes uploaded and processing started."),
                 }
             )
         ),
         400: openapi.Response(
-            description='Bad request',
+            description="Bad request",
             schema=openapi.Schema(
                 type=openapi.TYPE_OBJECT,
                 properties={
-                    'error': openapi.Schema(type=openapi.TYPE_STRING, example="No files uploaded.")
+                    "error": openapi.Schema(type=openapi.TYPE_STRING, example="No files uploaded.")
                 }
             )
         )
     }
 )
-
 @api_view(['POST'])
-@parser_classes([MultiPartParser])
+@parser_classes([JSONParser])
 def resume_upload_view(request):
+    s3_urls = request.data.get('file', [])
     
-    resume_files = request.FILES.getlist('file')
-        
-    if not resume_files:
+    if not s3_urls:
         return Response({"error": "No files uploaded."}, status=status.HTTP_400_BAD_REQUEST)
+
     serializer = ResumeSerializer()
-    created_resumes = serializer.create_bulk(resume_files) 
+    created_resumes = serializer.create_bulk(s3_urls)
+    
     for resume in created_resumes:
         process_resume_task.delay(resume.id)
 
-    logger.info(f"{len(resume_files)} Resume has been passed to the celery task for background processing: ")
+    logger.info(f"{len(created_resumes)} resumes have been passed to the Celery task for background processing.")
+    
     return Response(
-        {"message": f"{len(resume_files)} resumes uploaded and processing started."},
+        {"message": f"{len(created_resumes)} resumes uploaded and processing started."},
         status=status.HTTP_201_CREATED
     )
-        
 
 
 validation_error_response = openapi.Response(

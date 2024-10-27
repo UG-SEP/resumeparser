@@ -14,7 +14,7 @@ class Resume(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    file = models.FileField(upload_to='resumes/') #TODO: Remove the file field in future
+    s3_file_location = models.CharField(max_length=300)
     storage_path = models.CharField(max_length=255, blank=True, null=True)
     parsing_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in_progress')
     no_of_retries = models.IntegerField(default=0)
@@ -75,10 +75,10 @@ class Resume(models.Model):
             logger.error(f"An unexpected error occurred when retrieving file location for Resume {self.id}: {str(e)}", exc_info=True)
             raise ResumeProcessingError(f"Unexpected error: {str(e)}")
 
-    def set_file_location(self):
+    def set_file_location(self,local_path):
         try:
-            if self.file.path:
-                self.storage_path = self.file.path
+            if local_path:
+                self.storage_path = local_path
                 self.save()
             else:
                 logger.warning(f"No file exists for Resume {self.id}")
@@ -99,17 +99,17 @@ class Resume(models.Model):
     
     @classmethod
     def get_all(cls,resume_ids):
-        return Resume.objects.filter(id__in=[UUID(resume_id) for resume_id in resume_ids])
+        return Resume.objects.filter(id__in=[UUID(str(resume_id)) for resume_id in resume_ids])
 
     @classmethod
     def bulk_create_resume(cls,resume_objects):
         return Resume.objects.bulk_create(resume_objects)
 
     def delete_file(self):
-        if self.file:
-            if os.path.isfile(self.file.path):
-                os.remove(self.file.path)
-                logger.info(f"File deleted : {self.file.path}")
+        if self.storage_path:
+            if os.path.isfile(self.storage_path):
+                os.remove(self.storage_path)
+                logger.info(f"File deleted : {self.storage_path}")
 
     def time_filter_resumes_id(time_threshold):
         resumes = Resume.objects.filter(modified_at__gte=time_threshold) 
